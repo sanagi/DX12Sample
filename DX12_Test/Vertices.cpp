@@ -1,11 +1,11 @@
 #include "Vertices.h"
 
 //頂点
-XMFLOAT3 vertices[] = {
-	{-0.4f,-0.7f,0.0f} ,//左下
-	{-0.4f,0.7f,0.0f} ,//左上
-	{0.4f,-0.7f,0.0f} ,//右下
-	{0.4f,0.7f,0.0f} ,//右上
+Vertices::VertexInfo vertices[] = {
+		{{-0.5f,-0.9f,0.0f},{0.0f,1.0f} },//左下
+		{{-0.5f,0.9f,0.0f} ,{0.0f,0.0f}},//左上
+		{{0.5f,-0.9f,0.0f} ,{1.0f,1.0f}},//右下
+		{{0.5f,0.9f,0.0f} ,{1.0f,0.0f}},//右上
 };
 
 //インデックス設定
@@ -14,9 +14,11 @@ unsigned short indices[] = {
 	2,1,3
 };
 
-Vertices::Vertices() : _vertexBuffer{}, _indexBuffer{}{}
+Vertices::Vertices(ComPtr<ID3D12Device> device) : _vertexBuffer{}, _indexBuffer{}{
+	Initialize(device);
+}
 
-HRESULT Vertices::Initialize(ID3D12Device* device) {
+HRESULT Vertices::Initialize(ComPtr<ID3D12Device> device) {
 	HRESULT hr;
 	//ヒープ設定
 	D3D12_HEAP_PROPERTIES heapprop = {};
@@ -43,7 +45,7 @@ HRESULT Vertices::Initialize(ID3D12Device* device) {
 	}
 
 	//頂点バッファを渡す
-	XMFLOAT3* vertMap = nullptr;
+	VertexInfo* vertMap = nullptr;
 	hr = _vertexBuffer->Map(0, nullptr, (void**)&vertMap);
 	if (FAILED(hr)) {
 		return hr;
@@ -52,10 +54,10 @@ HRESULT Vertices::Initialize(ID3D12Device* device) {
 	_vertexBuffer->Unmap(0, nullptr);
 
 	//頂点バッファビューの作成
-	D3D12_VERTEX_BUFFER_VIEW vbView = {};
-	vbView.BufferLocation = _vertexBuffer->GetGPUVirtualAddress();//バッファの仮想アドレス
-	vbView.SizeInBytes = sizeof(vertices);//全バイト数
-	vbView.StrideInBytes = sizeof(vertices[0]);//1頂点あたりのバイト数
+	_vbView = {};
+	_vbView.BufferLocation = _vertexBuffer->GetGPUVirtualAddress();//バッファの仮想アドレス
+	_vbView.SizeInBytes = sizeof(vertices);//全バイト数
+	_vbView.StrideInBytes = sizeof(vertices[0]);//1頂点あたりのバイト数
 
 	resdesc.Width = sizeof(indices);
 	hr = device->CreateCommittedResource(&heapprop,	D3D12_HEAP_FLAG_NONE, &resdesc,	D3D12_RESOURCE_STATE_GENERIC_READ, nullptr,	IID_PPV_ARGS(&_indexBuffer));
@@ -67,10 +69,21 @@ HRESULT Vertices::Initialize(ID3D12Device* device) {
 	_indexBuffer->Unmap(0, nullptr);
 
 	//インデックスバッファビューを作成
-	D3D12_INDEX_BUFFER_VIEW ibView = {};
-	ibView.BufferLocation = _indexBuffer->GetGPUVirtualAddress();
-	ibView.Format = DXGI_FORMAT_R16_UINT;
-	ibView.SizeInBytes = sizeof(indices);
+	_indexBufferView = {};
+	_indexBufferView.BufferLocation = _indexBuffer->GetGPUVirtualAddress();
+	_indexBufferView.Format = DXGI_FORMAT_R16_UINT;
+	_indexBufferView.SizeInBytes = sizeof(indices);
 
 	return hr;
+}
+
+void Vertices::Draw(ComPtr<ID3D12GraphicsCommandList> command_list) {
+
+	//バッファビューの指定
+	command_list->IASetVertexBuffers(0, 1, &_vbView);
+	//インデックスバッファビューの指定
+	command_list->IASetIndexBuffer(&_indexBufferView);
+
+	//描画コマンド
+	command_list->DrawInstanced(4, 1, 0, 0);
 }

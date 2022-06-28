@@ -1,4 +1,6 @@
 #include "BaseInclude.h"
+#include "Vertices.h"
+
 const int RTV_NUM = 2; //レンダーターゲットの枚数
 const FLOAT CLEAR_COLOR[4] = { 1.0f, 0.0f, 0.20f, 1.0f }; // クリアする色
 
@@ -9,7 +11,11 @@ public:
 	D3D12Manager(HWND hwnd, int width, int height, LPCWSTR vertexShaderName, LPCWSTR pixelShaderName);
 	~D3D12Manager();
 
-	HRESULT Render(std::function<void(ID3D12GraphicsCommandList*)> draw);
+	HRESULT Render();
+
+	ComPtr<ID3D12Device> Dev = nullptr;
+	//コマンドリスト
+	ComPtr<ID3D12GraphicsCommandList> CommandList;
 
 private:
 
@@ -20,12 +26,9 @@ private:
 	//ウィンドウのハンドル
 	HWND _windowHandle;
 
-	ComPtr<ID3D12Device> _dev = nullptr;
 	ComPtr<IDXGIFactory4> _dxgiFactory = nullptr;
 	ComPtr<IDXGISwapChain4> _swapChain = nullptr;
 
-	//コマンドリスト
-	ComPtr<ID3D12GraphicsCommandList> _commandList;
 	ComPtr<ID3D12CommandAllocator>	_commandAllocator;
 	//コマンドキュー
 	ComPtr<ID3D12CommandQueue>	_commandQueue;
@@ -50,6 +53,11 @@ private:
 	//パイプラインステート
 	ComPtr<ID3D12PipelineState> _pipelineState;
 
+	//シザー矩形
+	D3D12_RECT _scissorRect;
+	//ビューポート
+	D3D12_VIEWPORT _viewPort;
+
 	//関数
 
 	//生成
@@ -63,10 +71,15 @@ private:
 	HRESULT CreateDepthStencilBuffer();
 	HRESULT CreateRootSignature();
 	HRESULT CreatePipelineStateObject(LPCWSTR vertexShaderName, LPCWSTR pixelShaderName);
+	void CreateViewPortScissorRect();
 
 	//描画
-	HRESULT StackDrawCommandList(std::function<void(ID3D12GraphicsCommandList*)> draw);
+	HRESULT StackDrawCommandList();
 	HRESULT WaitForPreviousFrame();
+
+	//描画するオブジェクト達
+	//出来ればmain側でコールバックとかでやりたい
+	Vertices* _vert;
 
 	//void DrawCallback(std::function<void(ID3D12GraphicsCommandList*)> draw);
 };

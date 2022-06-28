@@ -6,6 +6,7 @@ D3D12Manager::D3D12Manager(HWND hwnd, int width, int height, LPCWSTR vertexShade
 	//デバイスの初期化
 	CreateFactory();
 	CreateDevice();
+
 	//コマンドリスト
 	CreateCommandList();
 	//コマンドキュー
@@ -18,6 +19,18 @@ D3D12Manager::D3D12Manager(HWND hwnd, int width, int height, LPCWSTR vertexShade
 	CreateRenderTargetView();
 	//深度バッファ作成
 	CreateDepthStencilBuffer();
+
+	//ルートシグネチャ
+	CreateRootSignature();
+	//パイプラインステート
+	CreatePipelineStateObject(vertexShaderName, pixelShaderName);
+
+	//ビューポートとシザー矩形
+	CreateViewPortScissorRect();
+
+	//描画オブジェクト作る
+	//どっか別でやりたい
+	_vert = new Vertices(Dev);
 }
 
 D3D12Manager::~D3D12Manager() {}
@@ -41,7 +54,7 @@ HRESULT D3D12Manager::CreateDevice() {
 	HRESULT hr{};
 	//D3D_FEATURE_LEVEL featureLevel;
 	for (auto lv : levels) {
-		if (D3D12CreateDevice(warpAdapter, lv, IID_PPV_ARGS(&_dev)) == S_OK) {
+		if (D3D12CreateDevice(warpAdapter, lv, IID_PPV_ARGS(&Dev)) == S_OK) {
 			//featureLevel = lv;
 			return S_OK;
 		}
@@ -84,14 +97,14 @@ HRESULT D3D12Manager::CreateCommandList() {
 	HRESULT hr;
 
 	//コマンドアロケータの作成
-	hr = _dev->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&_commandAllocator));
+	hr = Dev->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&_commandAllocator));
 	if (FAILED(hr)) {
 		return hr;
 	}
 
 	//コマンドアロケータとバインドしてコマンドリストを作成する
-	hr = _dev->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, _commandAllocator.Get(), nullptr, IID_PPV_ARGS(&_commandList));
-	_commandList->Close();
+	hr = Dev->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, _commandAllocator.Get(), nullptr, IID_PPV_ARGS(&CommandList));
+	CommandList->Close();
 
 	return hr;
 }
@@ -110,18 +123,11 @@ HRESULT D3D12Manager::CreateCommandQueue() {
 	//優先度0
 	commandQueueDesc.Priority = D3D12_COMMAND_QUEUE_PRIORITY_NORMAL;
 	
-	hr = _dev->CreateCommandQueue(&commandQueueDesc, IID_PPV_ARGS(_commandQueue.GetAddressOf()));
+	hr = Dev->CreateCommandQueue(&commandQueueDesc, IID_PPV_ARGS(_commandQueue.GetAddressOf()));
 	if (FAILED(hr)) {
 		return hr;
 	}
 
-	//コマンドキュー用のフェンスの生成
-	/*fence_event_ = CreateEventEx(nullptr, FALSE, FALSE, EVENT_ALL_ACCESS);
-	if (fence_event_ == NULL) {
-		return E_FAIL;
-	}
-	hr = _dev->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(queue_fence_.GetAddressOf()));
-	*/
 	return hr;
 }
 
@@ -130,7 +136,7 @@ HRESULT D3D12Manager::CreateFence() {
 	HRESULT hr{};
 
 	//コマンドキュー用のフェンスの生成
-	hr = _dev->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(_queueFence.GetAddressOf()));
+	hr = Dev->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(_queueFence.GetAddressOf()));
 
 	return hr;
 }
@@ -180,7 +186,7 @@ HRESULT D3D12Manager::CreateRenderTargetView() {
 	heap_desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 	heap_desc.NodeMask = 0;
 
-	hr = _dev->CreateDescriptorHeap(&heap_desc, IID_PPV_ARGS(_rtvHeaps.GetAddressOf()));
+	hr = Dev->CreateDescriptorHeap(&heap_desc, IID_PPV_ARGS(_rtvHeaps.GetAddressOf()));
 	if (FAILED(hr)) {
 		return hr;
 	}
@@ -189,7 +195,7 @@ HRESULT D3D12Manager::CreateRenderTargetView() {
 	hr = _swapChain->GetDesc(&swcDesc);
 
 	//ハンドルのインクリメントサイズ取得
-	_descHandleIncSize = _dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+	_descHandleIncSize = Dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 
 	//ディスクリプタヒープの先頭を取得
 	D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = _rtvHeaps->GetCPUDescriptorHandleForHeapStart();
@@ -199,7 +205,7 @@ HRESULT D3D12Manager::CreateRenderTargetView() {
 		hr = _swapChain->GetBuffer(static_cast<UINT>(i), IID_PPV_ARGS(&_rtvBuffers[i]));
 
 		//レンダ―ターゲットビューの作成
-		_dev ->CreateRenderTargetView(_rtvBuffers[i].Get(), NULL, rtvHandle);
+		Dev ->CreateRenderTargetView(_rtvBuffers[i].Get(), NULL, rtvHandle);
 
 		//先頭からポインタを進める
 		rtvHandle.ptr += _descHandleIncSize;
@@ -235,14 +241,14 @@ HRESULT D3D12Manager::CreateDepthStencilBuffer() {
 	clearValue.DepthStencil.Depth = 1.0f; // 深さ1.0fでクリア
 	
 	ID3D12Resource* depthBuffer = nullptr;
-	hr = _dev->CreateCommittedResource(&heapProperties, D3D12_HEAP_FLAG_NONE, &resourceDesc, D3D12_RESOURCE_STATE_DEPTH_WRITE, &clearValue, IID_PPV_ARGS(&depthBuffer));
+	hr = Dev->CreateCommittedResource(&heapProperties, D3D12_HEAP_FLAG_NONE, &resourceDesc, D3D12_RESOURCE_STATE_DEPTH_WRITE, &clearValue, IID_PPV_ARGS(&depthBuffer));
 
 	//深度バッファ用のデスクリプタヒープの作成
 	D3D12_DESCRIPTOR_HEAP_DESC descriptorHeapDesc{};
 	descriptorHeapDesc.NumDescriptors = 1;
 	descriptorHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
 	descriptorHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-	hr = _dev->CreateDescriptorHeap(&descriptorHeapDesc, IID_PPV_ARGS(&_dsvHeaps));
+	hr = Dev->CreateDescriptorHeap(&descriptorHeapDesc, IID_PPV_ARGS(&_dsvHeaps));
 	if (FAILED(hr)) {
 		return hr;
 	}
@@ -257,7 +263,7 @@ HRESULT D3D12Manager::CreateDepthStencilBuffer() {
 	//ディスクリプタヒープの先頭を取得
 	D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = _dsvHeaps->GetCPUDescriptorHandleForHeapStart();
 
-	_dev->CreateDepthStencilView(depthBuffer, &dsvDesc, dsvHandle);
+	Dev->CreateDepthStencilView(depthBuffer, &dsvDesc, dsvHandle);
 
 	return hr;
 }
@@ -265,6 +271,16 @@ HRESULT D3D12Manager::CreateDepthStencilBuffer() {
 //ルートシグネチャ(ディスクリプターテーブルを管理するもの)を作る
 HRESULT D3D12Manager::CreateRootSignature() {
 	HRESULT hr{};
+
+	ComPtr<ID3DBlob> errorBlob = nullptr;
+
+	D3D12_ROOT_SIGNATURE_DESC rootSignatureDesc = {};
+	rootSignatureDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT; //頂点情報の列挙がある事を伝える
+
+	ID3DBlob* rootSigBlob = nullptr;
+	hr = D3D12SerializeRootSignature(&rootSignatureDesc, D3D_ROOT_SIGNATURE_VERSION_1_0, &rootSigBlob, &errorBlob);
+	hr = Dev->CreateRootSignature(0, rootSigBlob->GetBufferPointer(), rootSigBlob->GetBufferSize(), IID_PPV_ARGS(&_rootSignature));
+	rootSigBlob->Release();
 
 	return hr;
 }
@@ -288,7 +304,7 @@ HRESULT D3D12Manager::CreatePipelineStateObject(LPCWSTR vertexShaderName, LPCWST
 	hr = D3DCompileFromFile(
 		vertexShaderName, //シェーダー名
 		nullptr, //マクロオブジェクト
-		nullptr, //includeのオブジェクト
+		D3D_COMPILE_STANDARD_FILE_INCLUDE, //includeのオブジェクト
 		"VSMain", //シェーダーのメイン関数
 		"vs_5_0", //シェーダーの種類
 		compile_flag, //コンパイル設定
@@ -313,7 +329,8 @@ HRESULT D3D12Manager::CreatePipelineStateObject(LPCWSTR vertexShaderName, LPCWST
 	//ピクセルシェーダーのコンパイル
 	hr = D3DCompileFromFile(
 		pixelShaderName,
-		nullptr, nullptr,
+		nullptr, 
+		D3D_COMPILE_STANDARD_FILE_INCLUDE,
 		"PSMain",
 		"ps_5_0",
 		compile_flag,
@@ -345,6 +362,10 @@ HRESULT D3D12Manager::CreatePipelineStateObject(LPCWSTR vertexShaderName, LPCWST
 			D3D12_APPEND_ALIGNED_ELEMENT, //データのオフセット位置
 			D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, //InputSlotClass
 			0 //一度に描画するインスタンス数
+		},
+		{ 
+			"TEXCOORD",	0, DXGI_FORMAT_R32G32_FLOAT,
+			0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 
 		},
 	};
 
@@ -409,13 +430,31 @@ HRESULT D3D12Manager::CreatePipelineStateObject(LPCWSTR vertexShaderName, LPCWST
 	gpipeline.SampleDesc.Quality = 0;//クオリティは最低
 
 	//パイプライン作成
-	hr = _dev->CreateGraphicsPipelineState(&gpipeline, IID_PPV_ARGS(&_pipelineState));
+	hr = Dev->CreateGraphicsPipelineState(&gpipeline, IID_PPV_ARGS(&_pipelineState));
 
 	return hr;
 }
 
+//ビューポートとシザー矩形
+void D3D12Manager::CreateViewPortScissorRect() {
+	_viewPort = {};
+	_viewPort.Width = _width;//出力先の幅(ピクセル数)
+	_viewPort.Height = _height;//出力先の高さ(ピクセル数)
+	_viewPort.TopLeftX = 0;//出力先の左上座標X
+	_viewPort.TopLeftY = 0;//出力先の左上座標Y
+	_viewPort.MaxDepth = 1.0f;//深度最大値
+	_viewPort.MinDepth = 0.0f;//深度最小値
+
+
+	_scissorRect = {};
+	_scissorRect.top = 0;//切り抜き上座標
+	_scissorRect.left = 0;//切り抜き左座標
+	_scissorRect.right = _scissorRect.left + _width;//切り抜き右座標
+	_scissorRect.bottom = _scissorRect.top + _height;//切り抜き下座標
+}
+
 //描画命令を積む
-HRESULT D3D12Manager::StackDrawCommandList(std::function<void(ID3D12GraphicsCommandList*)> draw) {
+HRESULT D3D12Manager::StackDrawCommandList() {
 	HRESULT hr;
 
 	// バックバッファのインデックス取得
@@ -431,28 +470,42 @@ HRESULT D3D12Manager::StackDrawCommandList(std::function<void(ID3D12GraphicsComm
 	barrierDesc.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
 
 	//リソースバリアの指定(Present→Render)
-	_commandList->ResourceBarrier(1, &barrierDesc);
+	CommandList->ResourceBarrier(1, &barrierDesc);
+
+	//パイプラインセット
+	CommandList->SetPipelineState(_pipelineState.Get());
 
 	//レンダ―ターゲットの設定
 	auto rtvH = _rtvHeaps->GetCPUDescriptorHandleForHeapStart();
 	auto dsvH = _dsvHeaps->GetCPUDescriptorHandleForHeapStart();
 	rtvH.ptr += rtvBufferIndex * _descHandleIncSize;
-	_commandList->OMSetRenderTargets(1, &rtvH, TRUE, &dsvH);
+	CommandList->OMSetRenderTargets(1, &rtvH, TRUE, &dsvH);
 
 	//深度バッファとレンダーターゲットのクリア
-	_commandList->ClearDepthStencilView(dsvH, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
-	_commandList->ClearRenderTargetView(rtvH, CLEAR_COLOR, 0, nullptr);
+	CommandList->ClearDepthStencilView(dsvH, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
+	CommandList->ClearRenderTargetView(rtvH, CLEAR_COLOR, 0, nullptr);
+
+	//ルートシグネチャセット
+	CommandList->SetGraphicsRootSignature(_rootSignature.Get());
+
+	//ViewPort、シザー矩形
+	CommandList->RSSetViewports(1, &_viewPort);
+	CommandList->RSSetScissorRects(1, &_scissorRect);
+
+	//頂点情報のセット
+	CommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP); //トポロジ指定
 
 	//描画コマンド
-	draw(_commandList.Get());
+	_vert->Draw(CommandList);
+	//draw();
 
 	//リソースバリアの指定(Render→Present)
 	barrierDesc.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
 	barrierDesc.Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;
-	_commandList->ResourceBarrier(1, &barrierDesc);
+	CommandList->ResourceBarrier(1, &barrierDesc);
 
 	//コマンドリストのクローズ
-	_commandList->Close();
+	hr = CommandList->Close();
 
 	return hr;
 }
@@ -487,7 +540,7 @@ HRESULT D3D12Manager::WaitForPreviousFrame() {
 }
 
 //描画メイン
-HRESULT D3D12Manager::Render(std::function<void(ID3D12GraphicsCommandList*)> draw) {
+HRESULT D3D12Manager::Render() {
 	HRESULT hr;
 
 	//アロケーターのリセット
@@ -496,17 +549,17 @@ HRESULT D3D12Manager::Render(std::function<void(ID3D12GraphicsCommandList*)> dra
 		return hr;
 	}
 	//コマンドリストのリセット
-	hr = _commandList->Reset(_commandAllocator.Get(), nullptr);
+	hr = CommandList->Reset(_commandAllocator.Get(), nullptr);
 	//hr = _commandList->Reset(_commandAllocator, pipeline_state_.Get());
 	if (FAILED(hr)) {
 		return hr;
 	}
 
 	//コマンドリスト準備
-	StackDrawCommandList(draw);
+	StackDrawCommandList();
 
 	//コマンドリスト実行
-	ID3D12CommandList* commandLists = _commandList.Get();
+	ID3D12CommandList* commandLists = CommandList.Get();
 	_commandQueue->ExecuteCommandLists(1, &commandLists);
 
 	//実行したらリセットしていい(Populateでも一応リセットしてるが)

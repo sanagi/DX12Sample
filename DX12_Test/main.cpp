@@ -1,5 +1,5 @@
-#include "BaseInclude.h"
 #include "D3D12Manager.h"
+#include "Vertices.h"
 
 #pragma region Constant
 
@@ -67,7 +67,15 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		);
 
 	//マネージャー初期化
-	D3D12Manager direct_3d(hwnd, WINDOW_WIDTH, WINDOW_HEIGHT);
+	D3D12Manager direct_3d(hwnd, WINDOW_WIDTH, WINDOW_HEIGHT, L"SimpleVertexShader.hlsl", L"SimplePixelShader.hlsl");
+
+	//頂点クラス初期化
+	/*Vertices vert(direct_3d.Dev);
+
+	//ラムだ式定義
+	std::function<void(ComPtr<ID3D12GraphicsCommandList>)> DrawCallBack = {
+		vert.Draw(direct_3d.CommandList.Get()) 
+	};*/
 
 	//表示
 	ShowWindow(hwnd, SW_SHOW);
