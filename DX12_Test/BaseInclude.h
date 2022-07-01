@@ -11,7 +11,7 @@
 #include <D3Dcompiler.h>
 #include <vector>
 #include <wrl/client.h>
-#include<string>
+#include <string>
 
 #pragma comment(lib,"DirectXTex.lib")
 #pragma comment(lib, "d3d12.lib")

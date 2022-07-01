@@ -1,4 +1,6 @@
-struct VSOutput {
-	float4 Position : SV_POSITION; //座標
-	float2 UV : TEXCOORD; //uv値
+//頂点シェーダ→ピクセルシェーダへのやり取りに使用する
+//構造体
+struct BasicType {
+	float4 svpos:SV_POSITION;//システム用頂点座標
+	float2 uv:TEXCOORD;//UV値
 };

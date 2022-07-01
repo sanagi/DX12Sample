@@ -20,6 +20,10 @@ D3D12Manager::D3D12Manager(HWND hwnd, int width, int height, LPCWSTR vertexShade
 	//深度バッファ作成
 	CreateDepthStencilBuffer();
 
+	//描画オブジェクト作る
+	//どっか別でやりたい
+	_vert = new Vertices(Dev);
+
 	//ルートシグネチャ
 	CreateRootSignature();
 	//パイプラインステート
@@ -28,9 +32,10 @@ D3D12Manager::D3D12Manager(HWND hwnd, int width, int height, LPCWSTR vertexShade
 	//ビューポートとシザー矩形
 	CreateViewPortScissorRect();
 
-	//描画オブジェクト作る
-	//どっか別でやりたい
-	_vert = new Vertices(Dev);
+	//テクスチャ
+	_tex = new Texture(Dev);
+	CopyTexture();
+	_tex->CreateResource(Dev);
 }
 
 D3D12Manager::~D3D12Manager() {}
@@ -104,7 +109,6 @@ HRESULT D3D12Manager::CreateCommandList() {
 
 	//コマンドアロケータとバインドしてコマンドリストを作成する
 	hr = Dev->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, _commandAllocator.Get(), nullptr, IID_PPV_ARGS(&CommandList));
-	CommandList->Close();
 
 	return hr;
 }
@@ -148,11 +152,11 @@ HRESULT D3D12Manager::CreateSwapChain() {
 
 	swapChainDesc.Width = _width;
 	swapChainDesc.Height = _height;
-	swapChainDesc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
+	swapChainDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
 	swapChainDesc.Stereo = false;
 	swapChainDesc.SampleDesc.Count = 1;
 	swapChainDesc.SampleDesc.Quality = 0;
-	swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+	swapChainDesc.BufferUsage = DXGI_USAGE_BACK_BUFFER;
 	swapChainDesc.BufferCount = RTV_NUM;//裏と表で２枚作りたいので2を指定する
 
 	//スケーリング可能
@@ -200,12 +204,17 @@ HRESULT D3D12Manager::CreateRenderTargetView() {
 	//ディスクリプタヒープの先頭を取得
 	D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = _rtvHeaps->GetCPUDescriptorHandleForHeapStart();
 
+	//SRGBレンダーターゲットビュー設定
+	D3D12_RENDER_TARGET_VIEW_DESC rtvDesc = {};
+	rtvDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+	rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
+
 	for (UINT i = 0; i < swcDesc.BufferCount; ++i)
 	{
 		hr = _swapChain->GetBuffer(static_cast<UINT>(i), IID_PPV_ARGS(&_rtvBuffers[i]));
 
 		//レンダ―ターゲットビューの作成
-		Dev ->CreateRenderTargetView(_rtvBuffers[i].Get(), NULL, rtvHandle);
+		Dev ->CreateRenderTargetView(_rtvBuffers[i].Get(), &rtvDesc, rtvHandle);
 
 		//先頭からポインタを進める
 		rtvHandle.ptr += _descHandleIncSize;
@@ -277,12 +286,67 @@ HRESULT D3D12Manager::CreateRootSignature() {
 	D3D12_ROOT_SIGNATURE_DESC rootSignatureDesc = {};
 	rootSignatureDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT; //頂点情報の列挙がある事を伝える
 
+	//ディスクリプタレンジ
+	D3D12_DESCRIPTOR_RANGE descTblRange = {};
+	descTblRange.NumDescriptors = 1;//テクスチャひとつ
+	descTblRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;//種別はテクスチャ
+	descTblRange.BaseShaderRegister = 0;//0番スロットから
+	descTblRange.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+
+	//ルートパラメーター
+	D3D12_ROOT_PARAMETER rootparam = {};
+	rootparam.ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+	rootparam.DescriptorTable.pDescriptorRanges = &descTblRange;//デスクリプタレンジのアドレス
+	rootparam.DescriptorTable.NumDescriptorRanges = 1;//デスクリプタレンジ数
+	rootparam.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;//ピクセルシェーダから見える
+
+	rootSignatureDesc.pParameters = &rootparam;//ルートパラメータの先頭アドレス
+	rootSignatureDesc.NumParameters = 1;//ルートパラメータ数
+
+	//サンプラの指定
+	D3D12_STATIC_SAMPLER_DESC samplerDesc = {};
+	samplerDesc.AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;//横繰り返し
+	samplerDesc.AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP;//縦繰り返し
+	samplerDesc.AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;//奥行繰り返し
+	samplerDesc.BorderColor = D3D12_STATIC_BORDER_COLOR_TRANSPARENT_BLACK;//ボーダーの時は黒
+	samplerDesc.Filter = D3D12_FILTER_MIN_MAG_MIP_POINT;//補間しない(ニアレストネイバー)
+	samplerDesc.MaxLOD = D3D12_FLOAT32_MAX;//ミップマップ最大値
+	samplerDesc.MinLOD = 0.0f;//ミップマップ最小値
+	samplerDesc.ComparisonFunc = D3D12_COMPARISON_FUNC_NEVER;//オーバーサンプリングの際リサンプリングしない？
+	samplerDesc.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;//ピクセルシェーダからのみ可視
+
+	rootSignatureDesc.pStaticSamplers = &samplerDesc;
+	rootSignatureDesc.NumStaticSamplers = 1;
+
 	ID3DBlob* rootSigBlob = nullptr;
 	hr = D3D12SerializeRootSignature(&rootSignatureDesc, D3D_ROOT_SIGNATURE_VERSION_1_0, &rootSigBlob, &errorBlob);
 	hr = Dev->CreateRootSignature(0, rootSigBlob->GetBufferPointer(), rootSigBlob->GetBufferSize(), IID_PPV_ARGS(&_rootSignature));
 	rootSigBlob->Release();
 
 	return hr;
+}
+
+void D3D12Manager::CopyTexture() {
+	//GPUに転送
+	CommandList->CopyTextureRegion(_tex->dst, 0, 0, 0, _tex->src, nullptr);
+
+	D3D12_RESOURCE_BARRIER BarrierDesc = {};
+	BarrierDesc.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+	BarrierDesc.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+	BarrierDesc.Transition.pResource = _tex->TexBuffer.Get();
+	BarrierDesc.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+	BarrierDesc.Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
+	BarrierDesc.Transition.StateAfter = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+
+	CommandList->ResourceBarrier(1, &BarrierDesc);
+	CommandList->Close();
+
+	//コマンドリストの実行
+	ID3D12CommandList* cmdlists[] = { CommandList.Get() };
+	_commandQueue->ExecuteCommandLists(1, cmdlists);
+	WaitForPreviousFrame();
+	//リセット
+	ResetCommand(nullptr);
 }
 
 //パイプラインステートオブジェクト
@@ -353,7 +417,7 @@ HRESULT D3D12Manager::CreatePipelineStateObject(LPCWSTR vertexShaderName, LPCWST
 	}
 
 	//頂点シェーダーに描かれてるデータの指定
-	D3D12_INPUT_ELEMENT_DESC inputLayout[] = {
+	/*D3D12_INPUT_ELEMENT_DESC inputLayout[] = {
 		{ 
 			"POSITION", //セマンティクス
 			0, //セマンティクスのインデックス
@@ -367,6 +431,12 @@ HRESULT D3D12Manager::CreatePipelineStateObject(LPCWSTR vertexShaderName, LPCWST
 			"TEXCOORD",	0, DXGI_FORMAT_R32G32_FLOAT,
 			0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 
 		},
+	};
+	*/
+
+	D3D12_INPUT_ELEMENT_DESC inputLayout[] = {
+		{ "POSITION",0,DXGI_FORMAT_R32G32B32_FLOAT,0,D3D12_APPEND_ALIGNED_ELEMENT,D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,0 },
+		{ "TEXCOORD",0,DXGI_FORMAT_R32G32_FLOAT,0,D3D12_APPEND_ALIGNED_ELEMENT,D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,0 },
 	};
 
 	//パイプラインステート
@@ -477,12 +547,12 @@ HRESULT D3D12Manager::StackDrawCommandList() {
 
 	//レンダ―ターゲットの設定
 	auto rtvH = _rtvHeaps->GetCPUDescriptorHandleForHeapStart();
-	auto dsvH = _dsvHeaps->GetCPUDescriptorHandleForHeapStart();
+	//auto dsvH = _dsvHeaps->GetCPUDescriptorHandleForHeapStart();
 	rtvH.ptr += rtvBufferIndex * _descHandleIncSize;
-	CommandList->OMSetRenderTargets(1, &rtvH, TRUE, &dsvH);
+	CommandList->OMSetRenderTargets(1, &rtvH, TRUE, nullptr);
 
 	//深度バッファとレンダーターゲットのクリア
-	CommandList->ClearDepthStencilView(dsvH, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
+	//CommandList->ClearDepthStencilView(dsvH, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 	CommandList->ClearRenderTargetView(rtvH, CLEAR_COLOR, 0, nullptr);
 
 	//ルートシグネチャセット
@@ -497,6 +567,14 @@ HRESULT D3D12Manager::StackDrawCommandList() {
 
 	//描画コマンド
 	_vert->Draw(CommandList);
+
+	//テクスチャ関連
+	CommandList->SetGraphicsRootSignature(_rootSignature.Get());
+	CommandList->SetDescriptorHeaps(1, &_tex->TexHeaps);
+	CommandList->SetGraphicsRootDescriptorTable(0, _tex->TexHeaps->GetGPUDescriptorHandleForHeapStart());
+
+	CommandList->DrawIndexedInstanced(6, 1, 0, 0, 0);
+
 	//draw();
 
 	//リソースバリアの指定(Render→Present)
@@ -507,6 +585,28 @@ HRESULT D3D12Manager::StackDrawCommandList() {
 	//コマンドリストのクローズ
 	hr = CommandList->Close();
 
+	return hr;
+}
+
+HRESULT D3D12Manager::ResetCommand(ComPtr<ID3D12PipelineState> pipelineState) {
+	HRESULT hr;
+	//アロケーターのリセット
+	hr = _commandAllocator->Reset();
+	if (FAILED(hr)) {
+		return hr;
+	}
+	//コマンドリストのリセット
+	if (pipelineState != nullptr) {
+		hr = CommandList->Reset(_commandAllocator.Get(), pipelineState.Get());
+	}
+	else
+	{
+		hr = CommandList->Reset(_commandAllocator.Get(), nullptr);
+	}
+	//hr = _commandList->Reset(_commandAllocator, pipeline_state_.Get());
+	if (FAILED(hr)) {
+		return hr;
+	}
 	return hr;
 }
 
@@ -543,18 +643,6 @@ HRESULT D3D12Manager::WaitForPreviousFrame() {
 HRESULT D3D12Manager::Render() {
 	HRESULT hr;
 
-	//アロケーターのリセット
-	hr = _commandAllocator->Reset();
-	if (FAILED(hr)) {
-		return hr;
-	}
-	//コマンドリストのリセット
-	hr = CommandList->Reset(_commandAllocator.Get(), nullptr);
-	//hr = _commandList->Reset(_commandAllocator, pipeline_state_.Get());
-	if (FAILED(hr)) {
-		return hr;
-	}
-
 	//コマンドリスト準備
 	StackDrawCommandList();
 
@@ -568,6 +656,8 @@ HRESULT D3D12Manager::Render() {
 
 	//実行したコマンドの終了待ち
 	WaitForPreviousFrame();
+
+	hr = ResetCommand(_pipelineState);
 
 	//フリップ処理
 	hr = _swapChain->Present(1, 0);

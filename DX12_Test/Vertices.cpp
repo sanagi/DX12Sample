@@ -85,5 +85,5 @@ void Vertices::Draw(ComPtr<ID3D12GraphicsCommandList> command_list) {
 	command_list->IASetIndexBuffer(&_indexBufferView);
 
 	//•`‰æƒRƒ}ƒ“ƒh
-	command_list->DrawInstanced(4, 1, 0, 0);
+	//command_list->DrawInstanced(6, 1, 0, 0);
 }

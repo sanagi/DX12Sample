@@ -1,5 +1,6 @@
 #include "BaseInclude.h"
 #include "Vertices.h"
+#include "Texture.h"
 
 const int RTV_NUM = 2; //レンダーターゲットの枚数
 const FLOAT CLEAR_COLOR[4] = { 1.0f, 0.0f, 0.20f, 1.0f }; // クリアする色
@@ -30,8 +31,6 @@ private:
 	ComPtr<IDXGISwapChain4> _swapChain = nullptr;
 
 	ComPtr<ID3D12CommandAllocator>	_commandAllocator;
-	//コマンドキュー
-	ComPtr<ID3D12CommandQueue>	_commandQueue;
 
 	//RTV用ヒープ
 	ComPtr<ID3D12DescriptorHeap> _rtvHeaps = nullptr;
@@ -53,6 +52,9 @@ private:
 	//パイプラインステート
 	ComPtr<ID3D12PipelineState> _pipelineState;
 
+	//コマンドキュー
+	ComPtr<ID3D12CommandQueue>	_commandQueue;
+
 	//シザー矩形
 	D3D12_RECT _scissorRect;
 	//ビューポート
@@ -73,13 +75,20 @@ private:
 	HRESULT CreatePipelineStateObject(LPCWSTR vertexShaderName, LPCWSTR pixelShaderName);
 	void CreateViewPortScissorRect();
 
+	//GPUへの転送(テクスチャ)
+	void CopyTexture();
+
 	//描画
 	HRESULT StackDrawCommandList();
+	//コマンド待ち
 	HRESULT WaitForPreviousFrame();
+	//リセット
+	HRESULT ResetCommand(ComPtr<ID3D12PipelineState> pipelineState);
 
 	//描画するオブジェクト達
 	//出来ればmain側でコールバックとかでやりたい
 	Vertices* _vert;
+	Texture* _tex;
 
 	//void DrawCallback(std::function<void(ID3D12GraphicsCommandList*)> draw);
 };

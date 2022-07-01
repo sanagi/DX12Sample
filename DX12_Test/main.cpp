@@ -3,8 +3,8 @@
 
 #pragma region Constant
 
-const int WINDOW_WIDTH = 1024;
-const int WINDOW_HEIGHT = 768;
+const int WINDOW_WIDTH = 1280;
+const int WINDOW_HEIGHT = 720;
 
 #pragma endregion
 
