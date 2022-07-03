@@ -1,6 +1,7 @@
 #include "BaseInclude.h"
 #include "Vertices.h"
 #include "Texture.h"
+#include "Matrix.h"
 
 const int RTV_NUM = 2; //レンダーターゲットの枚数
 const FLOAT CLEAR_COLOR[4] = { 1.0f, 0.0f, 0.20f, 1.0f }; // クリアする色
@@ -45,6 +46,7 @@ private:
 
 	//フェンス
 	ComPtr<ID3D12Fence> _queueFence;
+	UINT64 _fenceValue = 0;
 
 	//ルートシグネチャ
 	ComPtr<ID3D12RootSignature>	_rootSignature;
@@ -54,6 +56,9 @@ private:
 
 	//コマンドキュー
 	ComPtr<ID3D12CommandQueue>	_commandQueue;
+
+	//リソース用ヒープ
+	ComPtr<ID3D12DescriptorHeap> _resourceHeaps = nullptr;
 
 	//シザー矩形
 	D3D12_RECT _scissorRect;
@@ -70,6 +75,7 @@ private:
 	HRESULT CreateFence();
 	HRESULT CreateSwapChain();
 	HRESULT CreateRenderTargetView();
+	HRESULT CreateResourceHeap();
 	HRESULT CreateDepthStencilBuffer();
 	HRESULT CreateRootSignature();
 	HRESULT CreatePipelineStateObject(LPCWSTR vertexShaderName, LPCWSTR pixelShaderName);
@@ -89,6 +95,7 @@ private:
 	//出来ればmain側でコールバックとかでやりたい
 	Vertices* _vert;
 	Texture* _tex;
+	Matrix* _matrix;
 
 	//void DrawCallback(std::function<void(ID3D12GraphicsCommandList*)> draw);
 };

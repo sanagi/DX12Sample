@@ -32,10 +32,17 @@ D3D12Manager::D3D12Manager(HWND hwnd, int width, int height, LPCWSTR vertexShade
 	//ビューポートとシザー矩形
 	CreateViewPortScissorRect();
 
+	//リソース用ヒープ
+	CreateResourceHeap();
+
+	auto basicHeapHandle = _resourceHeaps->GetCPUDescriptorHandleForHeapStart();
 	//テクスチャ
-	_tex = new Texture(Dev);
+	_tex = new Texture(Dev, _resourceHeaps->GetCPUDescriptorHandleForHeapStart());
 	CopyTexture();
-	_tex->CreateResource(Dev);
+
+	basicHeapHandle.ptr += Dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+	//行列
+	_matrix = new Matrix(Dev, _width, _height, basicHeapHandle);
 }
 
 D3D12Manager::~D3D12Manager() {}
@@ -179,6 +186,24 @@ HRESULT D3D12Manager::CreateSwapChain() {
 	return S_OK;
 }
 
+/// <summary>
+/// リソース(定数バッファ、テクスチャ)用ヒープ作成
+/// </summary>
+/// <returns></returns>
+HRESULT D3D12Manager::CreateResourceHeap() {
+	HRESULT hr{};
+
+	D3D12_DESCRIPTOR_HEAP_DESC heap_desc{};
+	D3D12_DESCRIPTOR_HEAP_DESC descHeapDesc = {};
+	descHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;//シェーダから見えるように
+	descHeapDesc.NodeMask = 0;//マスクは0
+	descHeapDesc.NumDescriptors = 2;//SRV1つとCBV1つ
+	descHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;//デスクリプタヒープ種別
+	hr = Dev->CreateDescriptorHeap(&descHeapDesc, IID_PPV_ARGS(_resourceHeaps.GetAddressOf()));//生成
+
+	return hr;
+}
+
 //レンダーターゲットビューを作る
 HRESULT D3D12Manager::CreateRenderTargetView() {
 	HRESULT hr{};
@@ -287,18 +312,23 @@ HRESULT D3D12Manager::CreateRootSignature() {
 	rootSignatureDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT; //頂点情報の列挙がある事を伝える
 
 	//ディスクリプタレンジ
-	D3D12_DESCRIPTOR_RANGE descTblRange = {};
-	descTblRange.NumDescriptors = 1;//テクスチャひとつ
-	descTblRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;//種別はテクスチャ
-	descTblRange.BaseShaderRegister = 0;//0番スロットから
-	descTblRange.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+	D3D12_DESCRIPTOR_RANGE descTblRange[2] = {};
+	descTblRange[0].NumDescriptors = 1;//テクスチャひとつ
+	descTblRange[0].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;//種別はテクスチャ
+	descTblRange[0].BaseShaderRegister = 0;//0番スロットから
+	descTblRange[0].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+
+	descTblRange[1].NumDescriptors = 1;//定数ひとつ
+	descTblRange[1].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;//種別は定数
+	descTblRange[1].BaseShaderRegister = 0;//0番スロットから
+	descTblRange[1].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 
 	//ルートパラメーター
 	D3D12_ROOT_PARAMETER rootparam = {};
 	rootparam.ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-	rootparam.DescriptorTable.pDescriptorRanges = &descTblRange;//デスクリプタレンジのアドレス
-	rootparam.DescriptorTable.NumDescriptorRanges = 1;//デスクリプタレンジ数
-	rootparam.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;//ピクセルシェーダから見える
+	rootparam.DescriptorTable.pDescriptorRanges = &descTblRange[0];//デスクリプタレンジのアドレス
+	rootparam.DescriptorTable.NumDescriptorRanges = 2;//デスクリプタレンジ数
+	rootparam.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;//ピクセルシェーダから見える
 
 	rootSignatureDesc.pParameters = &rootparam;//ルートパラメータの先頭アドレス
 	rootSignatureDesc.NumParameters = 1;//ルートパラメータ数
@@ -530,17 +560,9 @@ HRESULT D3D12Manager::StackDrawCommandList() {
 	// バックバッファのインデックス取得
 	auto rtvBufferIndex = _swapChain->GetCurrentBackBufferIndex();
 
-	//リソースバリア作成
-	D3D12_RESOURCE_BARRIER barrierDesc = {};
-	barrierDesc.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-	barrierDesc.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-	barrierDesc.Transition.pResource = _rtvBuffers[rtvBufferIndex].Get();
-	barrierDesc.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-	barrierDesc.Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
-	barrierDesc.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
-
 	//リソースバリアの指定(Present→Render)
-	CommandList->ResourceBarrier(1, &barrierDesc);
+	auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(_rtvBuffers[rtvBufferIndex].Get(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
+	CommandList->ResourceBarrier(1, &barrier);
 
 	//パイプラインセット
 	CommandList->SetPipelineState(_pipelineState.Get());
@@ -563,24 +585,23 @@ HRESULT D3D12Manager::StackDrawCommandList() {
 	CommandList->RSSetScissorRects(1, &_scissorRect);
 
 	//頂点情報のセット
-	CommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP); //トポロジ指定
+	CommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST); //トポロジ指定
 
 	//描画コマンド
 	_vert->Draw(CommandList);
 
-	//テクスチャ関連
+	//リソース関連の紐づけ
 	CommandList->SetGraphicsRootSignature(_rootSignature.Get());
-	CommandList->SetDescriptorHeaps(1, &_tex->TexHeaps);
-	CommandList->SetGraphicsRootDescriptorTable(0, _tex->TexHeaps->GetGPUDescriptorHandleForHeapStart());
+	CommandList->SetDescriptorHeaps(1, _resourceHeaps.GetAddressOf());
+	CommandList->SetGraphicsRootDescriptorTable(0, _resourceHeaps.Get()->GetGPUDescriptorHandleForHeapStart());
 
 	CommandList->DrawIndexedInstanced(6, 1, 0, 0, 0);
 
 	//draw();
 
 	//リソースバリアの指定(Render→Present)
-	barrierDesc.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
-	barrierDesc.Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;
-	CommandList->ResourceBarrier(1, &barrierDesc);
+	barrier = CD3DX12_RESOURCE_BARRIER::Transition(_rtvBuffers[rtvBufferIndex].Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
+	CommandList->ResourceBarrier(1, &barrier);
 
 	//コマンドリストのクローズ
 	hr = CommandList->Close();
@@ -613,20 +634,19 @@ HRESULT D3D12Manager::ResetCommand(ComPtr<ID3D12PipelineState> pipelineState) {
 //コマンド待ち
 HRESULT D3D12Manager::WaitForPreviousFrame() {
 	HRESULT hr;
-	UINT64 fenceValue = 0;
 
 	//CPU側でfence値のインクリメント
-	hr = _commandQueue->Signal(_queueFence.Get(), ++fenceValue);
+	hr = _commandQueue->Signal(_queueFence.Get(), ++_fenceValue);
 	if (FAILED(hr)) {
 		return -1;
 	}
 
 	//GPU処理が終わったときに更新される値がCPU側でインクリメントした値でないなら待ちイベントを繰り返す
-	if (_queueFence->GetCompletedValue() != fenceValue) {
+	if (_queueFence->GetCompletedValue() != _fenceValue) {
 		HANDLE fenceEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
 
 		//fenceValueになったらイベントを発生させる
-		hr = _queueFence->SetEventOnCompletion(fenceValue, fenceEvent);
+		hr = _queueFence->SetEventOnCompletion(_fenceValue, fenceEvent);
 		if (FAILED(hr)) {
 			return -1;
 		}
@@ -642,6 +662,9 @@ HRESULT D3D12Manager::WaitForPreviousFrame() {
 //描画メイン
 HRESULT D3D12Manager::Render() {
 	HRESULT hr;
+
+	//行列の回転アニメーション
+	_matrix->Rotate();
 
 	//コマンドリスト準備
 	StackDrawCommandList();
@@ -675,8 +698,3 @@ HRESULT D3D12Manager::Render() {
 	*/
 	return S_OK;
 }
-
-/*/描画Callback
-void D3D12Manager::DrawCallback(std::function<void(ID3D12GraphicsCommandList*)> draw) {
-	draw(_commandList.Get());
-}*/

@@ -9,11 +9,11 @@ AlignmentedSize(size_t size, size_t alignment) {
 	return size + alignment - size % alignment;
 }
 
-Texture::Texture(ComPtr<ID3D12Device> device){
-	Initialize(device);
+Texture::Texture(ComPtr<ID3D12Device> device, D3D12_CPU_DESCRIPTOR_HANDLE resourceHeapHandle){
+	Initialize(device, resourceHeapHandle);
 }
 
-void Texture::Initialize(ComPtr<ID3D12Device> device) {
+void Texture::Initialize(ComPtr<ID3D12Device> device, D3D12_CPU_DESCRIPTOR_HANDLE resourceHeapHandle) {
 	//WICテクスチャのロード
 	CoInitializeEx(0, COINIT_MULTITHREADED);
 	ScratchImage scratchImg = {};
@@ -21,12 +21,7 @@ void Texture::Initialize(ComPtr<ID3D12Device> device) {
 	auto img = scratchImg.GetImage(0, 0, 0);//生データ抽出
 
 	//中間バッファとしてUploadヒープ設定
-	D3D12_HEAP_PROPERTIES uploadHeapProp = {};
-	uploadHeapProp.Type = D3D12_HEAP_TYPE_UPLOAD;
-	uploadHeapProp.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-	uploadHeapProp.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
-	uploadHeapProp.CreationNodeMask = 0;//単一アダプタのため0
-	uploadHeapProp.VisibleNodeMask = 0;//単一アダプタのため0
+	D3D12_HEAP_PROPERTIES uploadHeapProp = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
 
 	D3D12_RESOURCE_DESC resDesc = {};
 	resDesc.Format = DXGI_FORMAT_UNKNOWN;
@@ -117,20 +112,6 @@ void Texture::Initialize(ComPtr<ID3D12Device> device) {
 	src->PlacedFootprint.Footprint.Depth = static_cast<UINT>(_metaData.depth);
 	src->PlacedFootprint.Footprint.RowPitch = static_cast<UINT>(AlignmentedSize(img->rowPitch, D3D12_TEXTURE_DATA_PITCH_ALIGNMENT));
 	src->PlacedFootprint.Footprint.Format = img->format;
-}
-
-void Texture::CreateResource(ComPtr<ID3D12Device> device) {
-	HRESULT hr = {};
-	//テクスチャのヒープ
-	D3D12_DESCRIPTOR_HEAP_DESC descHeapDesc = {};
-	descHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;//シェーダから見えるように
-	descHeapDesc.NodeMask = 0;//マスクは0
-	descHeapDesc.NumDescriptors = 1;//ビューは今のところ１つだけ
-	descHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;//シェーダリソースビュー(および定数、UAVも)
-	hr = device->CreateDescriptorHeap(&descHeapDesc, IID_PPV_ARGS(&TexHeaps));//生成
-	if (FAILED(hr)) {
-		return;
-	}
 
 	//テクスチャビュー
 	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
@@ -141,6 +122,6 @@ void Texture::CreateResource(ComPtr<ID3D12Device> device) {
 
 	device->CreateShaderResourceView(TexBuffer.Get(), //ビューと関連付けるバッファ
 		&srvDesc, //先ほど設定したテクスチャ設定情報
-		TexHeaps->GetCPUDescriptorHandleForHeapStart()//ヒープのどこに割り当てるか
+		resourceHeapHandle//ヒープのどこに割り当てるか
 	);
 }

@@ -21,22 +21,10 @@ Vertices::Vertices(ComPtr<ID3D12Device> device) : _vertexBuffer{}, _indexBuffer{
 HRESULT Vertices::Initialize(ComPtr<ID3D12Device> device) {
 	HRESULT hr;
 	//ヒープ設定
-	D3D12_HEAP_PROPERTIES heapprop = {};
-	heapprop.Type = D3D12_HEAP_TYPE_UPLOAD; //ヒープの種類
-	heapprop.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN; //CPUページング設定
-	heapprop.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN; //メモリプールの場所
+	D3D12_HEAP_PROPERTIES heapprop = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
 
 	//リソース設定
-	D3D12_RESOURCE_DESC resdesc = {};
-	resdesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER; //バッファの指定
-	resdesc.Width = sizeof(vertices); //幅のみでまかなうので全頂点
-	resdesc.Height = 1; //1
-	resdesc.DepthOrArraySize = 1;
-	resdesc.MipLevels = 1;
-	resdesc.Format = DXGI_FORMAT_UNKNOWN;
-	resdesc.SampleDesc.Count = 1; //アンチエイリアシングの設定
-	resdesc.Flags = D3D12_RESOURCE_FLAG_NONE; 
-	resdesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR; //メモリの最初から最後まで繋がってる時の指定
+	D3D12_RESOURCE_DESC resdesc = CD3DX12_RESOURCE_DESC::Buffer(sizeof(vertices));;
 
 	//頂点バッファの生成
 	hr = device->CreateCommittedResource(&heapprop, D3D12_HEAP_FLAG_NONE, &resdesc, D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(&_vertexBuffer));

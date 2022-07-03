@@ -14,19 +14,13 @@ public:
 	TexMetadata _metaData;
 	ComPtr<ID3D12Resource> TexBuffer;
 
-	//テクスチャ用ヒープ
-	ID3D12DescriptorHeap* TexHeaps = nullptr;
-
 	D3D12_TEXTURE_COPY_LOCATION* src;
 	D3D12_TEXTURE_COPY_LOCATION* dst;
 
 
-	Texture(ComPtr<ID3D12Device> device);
-
-	void CreateResource(ComPtr<ID3D12Device> device);
+	Texture(ComPtr<ID3D12Device> device, D3D12_CPU_DESCRIPTOR_HANDLE resourceHeapHandle);
 
 private:
-	void Initialize(ComPtr<ID3D12Device> device);
-
+	void Initialize(ComPtr<ID3D12Device> device, D3D12_CPU_DESCRIPTOR_HANDLE resourceHeapHandle);
 };
 
