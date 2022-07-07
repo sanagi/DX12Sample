@@ -2,9 +2,10 @@
 #include "Vertices.h"
 #include "Texture.h"
 #include "Matrix.h"
+#include "Model.h"
 
 const int RTV_NUM = 2; //レンダーターゲットの枚数
-const FLOAT CLEAR_COLOR[4] = { 1.0f, 0.0f, 0.20f, 1.0f }; // クリアする色
+const FLOAT CLEAR_COLOR[4] = { 1.0f, 1.0f, 1.00f, 1.0f }; // クリアする色
 
 class D3D12Manager
 {
@@ -93,7 +94,7 @@ private:
 
 	//描画するオブジェクト達
 	//出来ればmain側でコールバックとかでやりたい
-	Vertices* _vert;
+	Model* _model;
 	Texture* _tex;
 	Matrix* _matrix;
 

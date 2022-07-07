@@ -145,6 +145,7 @@
     <ClCompile Include="D3D12Manager.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Matrix.cpp" />
+    <ClCompile Include="Model.cpp" />
     <ClCompile Include="Texture.cpp" />
     <ClCompile Include="Vertices.cpp" />
   </ItemGroup>
@@ -152,6 +153,7 @@
     <ClInclude Include="BaseInclude.h" />
     <ClInclude Include="D3D12Manager.h" />
     <ClInclude Include="Matrix.h" />
+    <ClInclude Include="Model.h" />
     <ClInclude Include="Texture.h" />
     <ClInclude Include="Vertices.h" />
   </ItemGroup>

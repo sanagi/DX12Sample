@@ -22,7 +22,7 @@ D3D12Manager::D3D12Manager(HWND hwnd, int width, int height, LPCWSTR vertexShade
 
 	//描画オブジェクト作る
 	//どっか別でやりたい
-	_vert = new Vertices(Dev);
+	_model = new Model(Dev, "Model/初音ミク.pmd", "rb");
 
 	//ルートシグネチャ
 	CreateRootSignature();
@@ -231,7 +231,7 @@ HRESULT D3D12Manager::CreateRenderTargetView() {
 
 	//SRGBレンダーターゲットビュー設定
 	D3D12_RENDER_TARGET_VIEW_DESC rtvDesc = {};
-	rtvDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+	rtvDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
 	rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
 
 	for (UINT i = 0; i < swcDesc.BufferCount; ++i)
@@ -446,29 +446,6 @@ HRESULT D3D12Manager::CreatePipelineStateObject(LPCWSTR vertexShaderName, LPCWST
 		return hr;
 	}
 
-	//頂点シェーダーに描かれてるデータの指定
-	/*D3D12_INPUT_ELEMENT_DESC inputLayout[] = {
-		{ 
-			"POSITION", //セマンティクス
-			0, //セマンティクスのインデックス
-			DXGI_FORMAT_R32G32B32_FLOAT, //フォーマット指定
-			0, //入力スロットインデックス
-			D3D12_APPEND_ALIGNED_ELEMENT, //データのオフセット位置
-			D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, //InputSlotClass
-			0 //一度に描画するインスタンス数
-		},
-		{ 
-			"TEXCOORD",	0, DXGI_FORMAT_R32G32_FLOAT,
-			0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 
-		},
-	};
-	*/
-
-	D3D12_INPUT_ELEMENT_DESC inputLayout[] = {
-		{ "POSITION",0,DXGI_FORMAT_R32G32B32_FLOAT,0,D3D12_APPEND_ALIGNED_ELEMENT,D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,0 },
-		{ "TEXCOORD",0,DXGI_FORMAT_R32G32_FLOAT,0,D3D12_APPEND_ALIGNED_ELEMENT,D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,0 },
-	};
-
 	//パイプラインステート
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC gpipeline = {};
 	
@@ -516,8 +493,8 @@ HRESULT D3D12Manager::CreatePipelineStateObject(LPCWSTR vertexShaderName, LPCWST
 	gpipeline.DepthStencilState.StencilWriteMask = D3D12_DEFAULT_STENCIL_WRITE_MASK;
 
 	//インプットレイアウトの設定
-	gpipeline.InputLayout.pInputElementDescs = inputLayout; //レイアウト先頭アドレス
-	gpipeline.InputLayout.NumElements = _countof(inputLayout); //レイアウト配列数
+	gpipeline.InputLayout.pInputElementDescs = _model->InputLayout; //レイアウト先頭アドレス
+	gpipeline.InputLayout.NumElements = _countof(_model->InputLayout); //レイアウト配列数
 	gpipeline.IBStripCutValue = D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_DISABLED;//ストリップ時のカットなし
 	gpipeline.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;//三角形で構成
 
@@ -569,12 +546,12 @@ HRESULT D3D12Manager::StackDrawCommandList() {
 
 	//レンダ―ターゲットの設定
 	auto rtvH = _rtvHeaps->GetCPUDescriptorHandleForHeapStart();
-	//auto dsvH = _dsvHeaps->GetCPUDescriptorHandleForHeapStart();
+	auto dsvH = _dsvHeaps->GetCPUDescriptorHandleForHeapStart();
 	rtvH.ptr += rtvBufferIndex * _descHandleIncSize;
-	CommandList->OMSetRenderTargets(1, &rtvH, TRUE, nullptr);
+	CommandList->OMSetRenderTargets(1, &rtvH, TRUE, &dsvH);
 
 	//深度バッファとレンダーターゲットのクリア
-	//CommandList->ClearDepthStencilView(dsvH, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
+	CommandList->ClearDepthStencilView(dsvH, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 	CommandList->ClearRenderTargetView(rtvH, CLEAR_COLOR, 0, nullptr);
 
 	//ルートシグネチャセット
@@ -587,17 +564,15 @@ HRESULT D3D12Manager::StackDrawCommandList() {
 	//頂点情報のセット
 	CommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST); //トポロジ指定
 
-	//描画コマンド
-	_vert->Draw(CommandList);
-
 	//リソース関連の紐づけ
 	CommandList->SetGraphicsRootSignature(_rootSignature.Get());
 	CommandList->SetDescriptorHeaps(1, _resourceHeaps.GetAddressOf());
 	CommandList->SetGraphicsRootDescriptorTable(0, _resourceHeaps.Get()->GetGPUDescriptorHandleForHeapStart());
 
-	CommandList->DrawIndexedInstanced(6, 1, 0, 0, 0);
 
-	//draw();
+	//描画コマンド
+	_model->Draw(CommandList);
+	//CommandList->DrawIndexedInstanced(_model->VertNum, 1, 0, 0, 0);
 
 	//リソースバリアの指定(Render→Present)
 	barrier = CD3DX12_RESOURCE_BARRIER::Transition(_rtvBuffers[rtvBufferIndex].Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
