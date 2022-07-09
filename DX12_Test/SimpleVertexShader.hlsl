@@ -1,8 +1,4 @@
 #include"SimpleShaderHeader.hlsli"
-cbuffer cbuff0 : register(b0) {
-	matrix world;//ワールド変換行列
-	matrix viewproj;//ビュープロジェクション行列
-};
 
 BasicType VSMain(
 	float4 pos : POSITION, 

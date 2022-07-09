@@ -1,23 +1,30 @@
 #include "Model.h"
 
 Model::Model(ComPtr<ID3D12Device> device, const char* modelName, const char* mode) {
-	Open(device, modelName, mode);
-}
-
-Model::~Model() {
-}
-
-void Model::Open(ComPtr<ID3D12Device> device, const char* modelName, const char* mode) {
-	HRESULT hr{};
-	char signature[3] = {};
-	PMDHeader pmdheader = {};
-	FILE* fp;
-
+	FILE* fp = nullptr;
 	auto error = fopen_s(&fp, "Model/初音ミク.pmd", "rb");
 	if (fp == nullptr) {
 		char strerr[256];
 		strerror_s(strerr, 256, error);
 	}
+
+	//ファイル読み込み
+	Open(fp, device, modelName, mode);
+	//頂点情報とインデックス元にリソース作成
+	CreateResource(device, _vertices, _indices);
+	//マテリアル作成
+	_material = new Material(device, fp);
+
+	fclose(fp);
+}
+
+Model::~Model() {
+}
+
+void Model::Open(FILE* fp,ComPtr<ID3D12Device> device, const char* modelName, const char* mode) {
+	HRESULT hr{};
+	char signature[3] = {};
+	PMDHeader pmdheader = {};
 
 	fread(signature, sizeof(signature), 1, fp);
 	fread(&pmdheader, sizeof(pmdheader), 1, fp);
@@ -26,23 +33,18 @@ void Model::Open(ComPtr<ID3D12Device> device, const char* modelName, const char*
 	auto re = fread(&vertNum, sizeof(vertNum), 1, fp);
 
 	constexpr unsigned int pmdvertex_size = 38;//頂点1つあたりのサイズ
-	std::vector<PMDVertex> vertices(vertNum);//バッファ確保
+	_vertices = std::vector<PMDVertex>(vertNum);//バッファ確保
 	for (auto i = 0; i < vertNum; i++)
 	{
-		fread(&vertices[i], pmdvertex_size, 1, fp);
+		fread(&_vertices[i], pmdvertex_size, 1, fp);
 	}
 
 	//インデックス数読み込み
 	fread(&_indicesNum, sizeof(_indicesNum), 1, fp);
 
 	//インデックス読み込み
-	std::vector<unsigned short> indices(_indicesNum);
-	fread(indices.data(), indices.size() * sizeof(indices[0]), 1, fp);
-
-	//頂点情報とインデックス元にリソース作成
-	CreateResource(device, vertices, indices);
-
-	fclose(fp);
+	_indices = std::vector<unsigned short>(_indicesNum);
+	fread(_indices.data(), _indices.size() * sizeof(_indices[0]), 1, fp);
 }
 
 /// <summary>
@@ -101,11 +103,14 @@ void Model::CreateResource(ComPtr<ID3D12Device> device, std::vector<PMDVertex> v
 
 }
 
-void Model::Draw(ComPtr<ID3D12GraphicsCommandList> command_list) {
+void Model::Draw(ComPtr<ID3D12Device> device, ComPtr<ID3D12GraphicsCommandList> command_list) {
+	//頂点情報のセット
+	command_list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST); //トポロジ指定
 	//バッファビューの指定
 	command_list->IASetVertexBuffers(0, 1, &_vbView);
 	//インデックスバッファビューの指定
 	command_list->IASetIndexBuffer(&_indexBufferView);
-	//描画
-	command_list->DrawIndexedInstanced(_indicesNum, 1, 0, 0, 0);
+
+	//マテリアルごとに描画
+	_material->Draw(device, command_list);
 }

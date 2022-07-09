@@ -37,10 +37,10 @@ D3D12Manager::D3D12Manager(HWND hwnd, int width, int height, LPCWSTR vertexShade
 
 	auto basicHeapHandle = _resourceHeaps->GetCPUDescriptorHandleForHeapStart();
 	//テクスチャ
-	_tex = new Texture(Dev, _resourceHeaps->GetCPUDescriptorHandleForHeapStart());
-	CopyTexture();
+	//_tex = new Texture(Dev, _resourceHeaps->GetCPUDescriptorHandleForHeapStart());
+	//CopyTexture();
 
-	basicHeapHandle.ptr += Dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+	//basicHeapHandle.ptr += Dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 	//行列
 	_matrix = new Matrix(Dev, _width, _height, basicHeapHandle);
 }
@@ -312,26 +312,33 @@ HRESULT D3D12Manager::CreateRootSignature() {
 	rootSignatureDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT; //頂点情報の列挙がある事を伝える
 
 	//ディスクリプタレンジ
-	D3D12_DESCRIPTOR_RANGE descTblRange[2] = {};
-	descTblRange[0].NumDescriptors = 1;//テクスチャひとつ
-	descTblRange[0].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;//種別はテクスチャ
+	D3D12_DESCRIPTOR_RANGE descTblRange[2] = {}; //テクスチャと定数の2つ
+
+	descTblRange[0].NumDescriptors = 1;//定数ひとつ
+	descTblRange[0].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;//種別は定数
 	descTblRange[0].BaseShaderRegister = 0;//0番スロットから
 	descTblRange[0].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 
-	descTblRange[1].NumDescriptors = 1;//定数ひとつ
+	//マテリアル用
+	descTblRange[1].NumDescriptors = 1;//テクスチャひとつ
 	descTblRange[1].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;//種別は定数
-	descTblRange[1].BaseShaderRegister = 0;//0番スロットから
+	descTblRange[1].BaseShaderRegister = 1;//1番スロットから
 	descTblRange[1].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 
 	//ルートパラメーター
-	D3D12_ROOT_PARAMETER rootparam = {};
-	rootparam.ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-	rootparam.DescriptorTable.pDescriptorRanges = &descTblRange[0];//デスクリプタレンジのアドレス
-	rootparam.DescriptorTable.NumDescriptorRanges = 2;//デスクリプタレンジ数
-	rootparam.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;//ピクセルシェーダから見える
+	D3D12_ROOT_PARAMETER rootparam[2] = {};
+	rootparam[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+	rootparam[0].DescriptorTable.pDescriptorRanges = &descTblRange[0];//デスクリプタレンジのアドレス
+	rootparam[0].DescriptorTable.NumDescriptorRanges = 1;//デスクリプタレンジ数
+	rootparam[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;//全シェーダから見える
 
-	rootSignatureDesc.pParameters = &rootparam;//ルートパラメータの先頭アドレス
-	rootSignatureDesc.NumParameters = 1;//ルートパラメータ数
+	rootparam[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+	rootparam[1].DescriptorTable.pDescriptorRanges = &descTblRange[1];//デスクリプタレンジのアドレス
+	rootparam[1].DescriptorTable.NumDescriptorRanges = 1;//デスクリプタレンジ数
+	rootparam[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;//ピクセルシェーダから見える
+
+	rootSignatureDesc.pParameters = rootparam;//ルートパラメータの先頭アドレス
+	rootSignatureDesc.NumParameters = 2;//ルートパラメータ数
 
 	//サンプラの指定
 	D3D12_STATIC_SAMPLER_DESC samplerDesc = {};
@@ -486,8 +493,9 @@ HRESULT D3D12Manager::CreatePipelineStateObject(LPCWSTR vertexShaderName, LPCWST
 
 	//デプスステンシルの指定
 	gpipeline.DepthStencilState.DepthEnable = true; //デプステストあり
-	gpipeline.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL;
+	gpipeline.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_LESS;
 	gpipeline.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
+	gpipeline.DSVFormat = DXGI_FORMAT_D32_FLOAT;
 	gpipeline.DepthStencilState.StencilEnable = false; //ステンシルテスト無し
 	gpipeline.DepthStencilState.StencilReadMask = D3D12_DEFAULT_STENCIL_READ_MASK;
 	gpipeline.DepthStencilState.StencilWriteMask = D3D12_DEFAULT_STENCIL_WRITE_MASK;
@@ -561,17 +569,15 @@ HRESULT D3D12Manager::StackDrawCommandList() {
 	CommandList->RSSetViewports(1, &_viewPort);
 	CommandList->RSSetScissorRects(1, &_scissorRect);
 
-	//頂点情報のセット
-	CommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST); //トポロジ指定
-
 	//リソース関連の紐づけ
 	CommandList->SetGraphicsRootSignature(_rootSignature.Get());
+
+	//定数系(WMP行列,Manager側で作ったHeapを使いまわしたもの)
 	CommandList->SetDescriptorHeaps(1, _resourceHeaps.GetAddressOf());
 	CommandList->SetGraphicsRootDescriptorTable(0, _resourceHeaps.Get()->GetGPUDescriptorHandleForHeapStart());
 
-
 	//描画コマンド
-	_model->Draw(CommandList);
+	_model->Draw(Dev, CommandList);
 	//CommandList->DrawIndexedInstanced(_model->VertNum, 1, 0, 0, 0);
 
 	//リソースバリアの指定(Render→Present)
@@ -655,10 +661,11 @@ HRESULT D3D12Manager::Render() {
 	//実行したコマンドの終了待ち
 	WaitForPreviousFrame();
 
-	hr = ResetCommand(_pipelineState);
-
 	//フリップ処理
 	hr = _swapChain->Present(1, 0);
+
+	hr = ResetCommand(_pipelineState);
+
 	if (FAILED(hr)) {
 		return hr;
 	}
