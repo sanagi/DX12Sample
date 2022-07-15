@@ -13,7 +13,7 @@ Model::Model(ComPtr<ID3D12Device> device, const char* modelName, const char* mod
 	//頂点情報とインデックス元にリソース作成
 	CreateResource(device, _vertices, _indices);
 	//マテリアル作成
-	_material = new Material(device, fp);
+	_material = new Material(device, fp, modelName);
 
 	fclose(fp);
 }

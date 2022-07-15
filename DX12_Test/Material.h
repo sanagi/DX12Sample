@@ -1,10 +1,10 @@
 #pragma once
-#include "BaseInclude.h"
+#include "Texture.h"
 
 class Material
 {
 public:
-	Material(ComPtr<ID3D12Device> device, FILE* fp);
+	Material(ComPtr<ID3D12Device> device, FILE* fp, std::string modelPath);
 	~Material();
 
 #pragma pack(1)//ここから1バイトパッキング…アライメントは発生しない
@@ -47,8 +47,12 @@ public:
 		AdditionarlMaterial additionarl;
 	};
 
+	//白テクスチャ
+	ComPtr<ID3D12Resource> _whiteTex;
+
 	std::vector<PMDMaterial> PmdMaterialVector;
 	std::vector<MaterialData> MaterialVector;
+	std::vector<ComPtr<ID3D12Resource>> TextureVector;
 
 	void Draw(ComPtr<ID3D12Device> device, ComPtr<ID3D12GraphicsCommandList> command_list);
 
@@ -56,7 +60,7 @@ private:
 	unsigned int _materialNum; //マテリアル数
 	ID3D12DescriptorHeap* _descHeap = nullptr;
 
-	void Load(FILE* fp);
+	void Load(ComPtr<ID3D12Device> device, FILE* fp, std::string modelPath);
 	void CreateResource(ComPtr<ID3D12Device> device);
 
 };

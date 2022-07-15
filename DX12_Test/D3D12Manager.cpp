@@ -312,7 +312,7 @@ HRESULT D3D12Manager::CreateRootSignature() {
 	rootSignatureDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT; //頂点情報の列挙がある事を伝える
 
 	//ディスクリプタレンジ
-	D3D12_DESCRIPTOR_RANGE descTblRange[2] = {}; //テクスチャと定数の2つ
+	D3D12_DESCRIPTOR_RANGE descTblRange[3] = {}; //テクスチャと定数の2つ
 
 	descTblRange[0].NumDescriptors = 1;//定数ひとつ
 	descTblRange[0].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;//種別は定数
@@ -325,6 +325,12 @@ HRESULT D3D12Manager::CreateRootSignature() {
 	descTblRange[1].BaseShaderRegister = 1;//1番スロットから
 	descTblRange[1].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 
+	//テクスチャ1つ目
+	descTblRange[2].NumDescriptors = 1;
+	descTblRange[2].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;//種別はテクスチャ
+	descTblRange[2].BaseShaderRegister = 0;
+	descTblRange[2].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+
 	//ルートパラメーター
 	D3D12_ROOT_PARAMETER rootparam[2] = {};
 	rootparam[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
@@ -334,7 +340,7 @@ HRESULT D3D12Manager::CreateRootSignature() {
 
 	rootparam[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
 	rootparam[1].DescriptorTable.pDescriptorRanges = &descTblRange[1];//デスクリプタレンジのアドレス
-	rootparam[1].DescriptorTable.NumDescriptorRanges = 1;//デスクリプタレンジ数
+	rootparam[1].DescriptorTable.NumDescriptorRanges = 2;//デスクリプタレンジ数
 	rootparam[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;//ピクセルシェーダから見える
 
 	rootSignatureDesc.pParameters = rootparam;//ルートパラメータの先頭アドレス

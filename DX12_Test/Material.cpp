@@ -1,7 +1,9 @@
 #include "Material.h"
 
-Material::Material(ComPtr<ID3D12Device> device, FILE* fp) {
-	Load(fp);
+Material::Material(ComPtr<ID3D12Device> device, FILE* fp, std::string modelPath) {
+	_whiteTex = Texture::CreateWhiteTexture(device);
+
+	Load(device, fp, modelPath);
 	CreateResource(device);
 }
 
@@ -9,11 +11,12 @@ Material::~Material() {
 
 }
 
-void Material::Load(FILE* fp) {
+void Material::Load(ComPtr<ID3D12Device> device, FILE* fp, std::string modelPath) {
 	fread(&_materialNum, sizeof(_materialNum), 1, fp); //マテリアル数を読む
 
 	MaterialVector = std::vector<MaterialData>(_materialNum);
 	PmdMaterialVector = std::vector<PMDMaterial>(_materialNum);
+	TextureVector = std::vector<ComPtr<ID3D12Resource>>(_materialNum);
 	
 	auto tmp = PmdMaterialVector.size() * sizeof(PMDMaterial);
 
@@ -28,6 +31,19 @@ void Material::Load(FILE* fp) {
 		MaterialVector[i].material.specularity = PmdMaterialVector[i].specularity;
 		MaterialVector[i].material.ambient = PmdMaterialVector[i].ambient;
 		MaterialVector[i].additionarl.toonIdx = PmdMaterialVector[i].toonIdx;
+	}
+
+	//テクスチャを読み込んでテクスチャリソースバッファの配列を得る
+	for (int i = 0; i < PmdMaterialVector.size(); i++) {
+		if (strlen(PmdMaterialVector[i].texFilePath) == 0) {
+			TextureVector[i] = nullptr;
+		}
+		else
+		{
+			auto texFilePath = Texture::GetTexturePathFromModelAndTexPath(modelPath, PmdMaterialVector[i].texFilePath);
+			TextureVector[i] = Texture::LoadTextureFromFile(device, texFilePath);
+		}
+
 	}
 }
 
@@ -62,7 +78,7 @@ void Material::CreateResource(ComPtr<ID3D12Device> device) {
 	materialBuff->Unmap(0, nullptr);
 
 	D3D12_DESCRIPTOR_HEAP_DESC materialDescHeapDesc = {};
-	materialDescHeapDesc.NumDescriptors = _materialNum * 5;//マテリアル数ぶん(定数1つ、テクスチャ3つ)
+	materialDescHeapDesc.NumDescriptors = _materialNum * 2;//マテリアルとテクスチャ
 	materialDescHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 	materialDescHeapDesc.NodeMask = 0;
 
@@ -73,14 +89,33 @@ void Material::CreateResource(ComPtr<ID3D12Device> device) {
 	matCBVDesc.BufferLocation = materialBuff->GetGPUVirtualAddress(); //バッファーのアドレス
 	matCBVDesc.SizeInBytes = static_cast<UINT>(materialBuffSize); // マテリアルの256アライメントサイズ
 
+	////通常テクスチャビュー作成
+	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;//後述
+	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;//2Dテクスチャ
+	srvDesc.Texture2D.MipLevels = 1;//ミップマップは使用しないので1
+
 	auto matDescHeapH = _descHeap->GetCPUDescriptorHandleForHeapStart();
 	auto incSize = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
 	//それぞれのビュー作成
 	for (size_t i = 0; i < _materialNum; ++i) {
 		device->CreateConstantBufferView(&matCBVDesc, matDescHeapH);
-		matDescHeapH.ptr += device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+		matDescHeapH.ptr += incSize;
 		matCBVDesc.BufferLocation += materialBuffSize;
+
+		//テクスチャ用のリソースビュー
+		if (TextureVector[i].Get() == nullptr) {
+			srvDesc.Format = _whiteTex->GetDesc().Format;
+			device->CreateShaderResourceView(_whiteTex.Get(), &srvDesc, matDescHeapH);
+		}
+		else {
+			srvDesc.Format = TextureVector[i]->GetDesc().Format;
+			device->CreateShaderResourceView(TextureVector[i].Get(), &srvDesc, matDescHeapH);
+		}
+
+		
+		matDescHeapH.ptr += incSize;
 	}
 }
 
@@ -97,7 +132,7 @@ void Material::Draw(ComPtr<ID3D12Device> device, ComPtr<ID3D12GraphicsCommandLis
 
 	unsigned int indexOffset = 0;
 	int i = 0;
-	auto cbvsrvIncSize = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+	auto cbvsrvIncSize = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV) * 2;
 	for (auto& m : MaterialVector) {
 		command_list->SetGraphicsRootDescriptorTable(1, materialHandle);
 		command_list->DrawIndexedInstanced(m.indicesNum, 1, indexOffset, 0, 0);
