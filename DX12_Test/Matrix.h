@@ -10,7 +10,9 @@ public:
 	struct MatricesData
 	{
 		XMMATRIX world; //モデルの回転行列
-		XMMATRIX viewproj; //ビューとプロジェクションの合成行列
+		XMMATRIX view; // ビュー行列
+		XMMATRIX proj; //プロジェクション行列
+		XMFLOAT3 eye; //視点
 	};
 
 private:

@@ -8,9 +8,12 @@ BasicType VSMain(
 	min16uint weight : WEIGHT
 	) {
 	BasicType output;//ピクセルシェーダへ渡す値
-	output.svpos = mul(mul(viewproj, world),pos);
+	pos = mul(world, pos);
+	output.svpos = mul(mul(proj, view),pos);
 	normal.w = 0;
 	output.normal = mul(world, normal);
+	output.vnormal = mul(view, output.normal);
 	output.uv = uv;
+	output.ray = normalize(pos.xyz - eye);
 	return output;
 }

@@ -34,7 +34,8 @@ void Matrix::Initialize(ComPtr<ID3D12Device> device, int width, int height, D3D1
 
 	hr = _constBuffer->Map(0, nullptr, (void**)&_mapMatrix);//マップ
 	_mapMatrix->world = _worldMat;
-	_mapMatrix->viewproj = _viewMat* _projMat;
+	_mapMatrix->view = _viewMat;
+	_mapMatrix->proj = _projMat;
 
 	//バッファビュー用ディスクリプタ
 	D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};

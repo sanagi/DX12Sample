@@ -9,6 +9,12 @@ AlignmentedSize(size_t size, size_t alignment) {
 	return size + alignment - size % alignment;
 }
 
+/// <summary>
+/// ラムダ式定義
+/// </summary>
+using LoadLambda_t = function<HRESULT(const wstring& path, TexMetadata*, ScratchImage&)>;
+std::map<string, LoadLambda_t> loadLambdaTable;
+
 Texture::Texture(ComPtr<ID3D12Device> device, D3D12_CPU_DESCRIPTOR_HANDLE resourceHeapHandle){
 	//Initialize(device, resourceHeapHandle);
 	//TexBuffer = LoadTextureFromFile(device, );
@@ -78,14 +84,32 @@ std::wstring Texture::GetWideStringFromString(const std::string& str) {
 /// <param name="texPath"></param>
 /// <returns></returns>
 ID3D12Resource* Texture::LoadTextureFromFile(ComPtr<ID3D12Device> device, std::string& texPath) {
-	
+	//テーブルの定義
+	{
+		loadLambdaTable["sph"] = loadLambdaTable["spa"] = loadLambdaTable["bmp"] = loadLambdaTable["png"] = loadLambdaTable["jpg"] = [](const wstring& path, TexMetadata* meta, ScratchImage& img)->HRESULT {
+			return LoadFromWICFile(path.c_str(), WIC_FLAGS_NONE, meta, img);
+		};
+
+		loadLambdaTable["tga"] = [](const wstring& path, TexMetadata* meta, ScratchImage& img)->HRESULT {
+			return LoadFromTGAFile(path.c_str(), meta, img);
+		};
+
+		loadLambdaTable["dds"] = [](const wstring& path, TexMetadata* meta, ScratchImage& img)->HRESULT {
+			return LoadFromDDSFile(path.c_str(), DDS_FLAGS_NONE, meta, img);
+		};
+	}
+
 	//WICテクスチャのロード
 	TexMetadata metadata = {};
 	ScratchImage scratchImg = {};
 
 	auto result = CoInitializeEx(0, COINIT_MULTITHREADED);
 
-	result = LoadFromWICFile(GetWideStringFromString(texPath).c_str(), WIC_FLAGS_NONE, &metadata, scratchImg);
+	auto wtexPath = GetWideStringFromString(texPath);
+	auto ext = GetExtension(texPath);
+
+	result = loadLambdaTable[ext](wtexPath, &metadata, scratchImg);
+	//result = LoadFromWICFile(GetWideStringFromString(texPath).c_str(), WIC_FLAGS_NONE, &metadata, scratchImg);
 	if (FAILED(result)) {
 		return nullptr;
 	}
