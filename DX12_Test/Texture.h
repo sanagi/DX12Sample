@@ -19,9 +19,12 @@ public:
 
 	Texture(ComPtr<ID3D12Device> device, D3D12_CPU_DESCRIPTOR_HANDLE resourceHeapHandle);
 
+	static std::string GetExtension(const std::string& path);
+	static std::pair<std::string, std::string> SplitFileName(const std::string& path, const char splitter = '*');
 	static std::string GetTexturePathFromModelAndTexPath(const std::string& modelPath, const char* texPath);
 	static ID3D12Resource* LoadTextureFromFile(ComPtr<ID3D12Device> device, std::string& texPath);
 	static ID3D12Resource* CreateWhiteTexture(ComPtr<ID3D12Device> device);
+	static ID3D12Resource* CreateBlackTexture(ComPtr<ID3D12Device> device);
 
 private:
 	//void Initialize(ComPtr<ID3D12Device> device, D3D12_CPU_DESCRIPTOR_HANDLE resourceHeapHandle);

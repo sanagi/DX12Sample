@@ -2,6 +2,7 @@
 
 Material::Material(ComPtr<ID3D12Device> device, FILE* fp, std::string modelPath) {
 	_whiteTex = Texture::CreateWhiteTexture(device);
+	_blackTex = Texture::CreateBlackTexture(device);
 
 	Load(device, fp, modelPath);
 	CreateResource(device);
@@ -17,6 +18,8 @@ void Material::Load(ComPtr<ID3D12Device> device, FILE* fp, std::string modelPath
 	MaterialVector = std::vector<MaterialData>(_materialNum);
 	PmdMaterialVector = std::vector<PMDMaterial>(_materialNum);
 	TextureVector = std::vector<ComPtr<ID3D12Resource>>(_materialNum);
+	sphTexVector = std::vector<ComPtr<ID3D12Resource>>(_materialNum);
+	spaTexVector = std::vector<ComPtr<ID3D12Resource>>(_materialNum);
 	
 	auto tmp = PmdMaterialVector.size() * sizeof(PMDMaterial);
 
@@ -40,8 +43,55 @@ void Material::Load(ComPtr<ID3D12Device> device, FILE* fp, std::string modelPath
 		}
 		else
 		{
-			auto texFilePath = Texture::GetTexturePathFromModelAndTexPath(modelPath, PmdMaterialVector[i].texFilePath);
-			TextureVector[i] = Texture::LoadTextureFromFile(device, texFilePath);
+			string texFileName = PmdMaterialVector[i].texFilePath;
+			string sphFileName = "";
+			string spaFileName = "";
+			auto namepair = Texture::SplitFileName(texFileName);
+			if (std::count(texFileName.begin(), texFileName.end(), '*') > 0) {
+				auto namepair = Texture::SplitFileName(texFileName);
+				if (Texture::GetExtension(namepair.first) == "sph") {
+					texFileName = namepair.second;
+					sphFileName = namepair.first;
+				}
+				else if (Texture::GetExtension(namepair.first) == "spa") {
+					texFileName = namepair.second;
+					spaFileName = namepair.first;
+				}
+				else {
+					texFileName = namepair.first;
+					if (Texture::GetExtension(namepair.second) == "sph") {
+						sphFileName = namepair.second;
+					}
+					else if (Texture::GetExtension(namepair.first) == "spa") {
+						spaFileName = namepair.second;
+					}
+				}
+			}
+			else {
+				if (Texture::GetExtension(PmdMaterialVector[i].texFilePath) == "sph") {
+					sphFileName = PmdMaterialVector[i].texFilePath;
+					texFileName = "";
+				}
+				else if (Texture::GetExtension(PmdMaterialVector[i].texFilePath) == "spa") {
+					spaFileName = PmdMaterialVector[i].texFilePath;
+					texFileName = "";
+				}
+				else {
+					texFileName = PmdMaterialVector[i].texFilePath;
+				}
+			}
+			if (texFileName != "") {
+				auto texFilePath = Texture::GetTexturePathFromModelAndTexPath(modelPath, texFileName.c_str());
+				TextureVector[i] = Texture::LoadTextureFromFile(device, texFilePath);
+			}
+			if (sphFileName != "") {
+				auto sphFilePath = Texture::GetTexturePathFromModelAndTexPath(modelPath, sphFileName.c_str());
+				sphTexVector[i] = Texture::LoadTextureFromFile(device, sphFilePath);
+			}
+			if (spaFileName != "") {
+				auto spaFilePath = Texture::GetTexturePathFromModelAndTexPath(modelPath, spaFileName.c_str());
+				spaTexVector[i] = Texture::LoadTextureFromFile(device, spaFilePath);
+			}
 		}
 
 	}
@@ -78,7 +128,7 @@ void Material::CreateResource(ComPtr<ID3D12Device> device) {
 	materialBuff->Unmap(0, nullptr);
 
 	D3D12_DESCRIPTOR_HEAP_DESC materialDescHeapDesc = {};
-	materialDescHeapDesc.NumDescriptors = _materialNum * 2;//マテリアルとテクスチャ
+	materialDescHeapDesc.NumDescriptors = _materialNum * 4;//マテリアルとテクスチャ2つ(普通のとスフィア)
 	materialDescHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 	materialDescHeapDesc.NodeMask = 0;
 
@@ -112,9 +162,27 @@ void Material::CreateResource(ComPtr<ID3D12Device> device) {
 		else {
 			srvDesc.Format = TextureVector[i]->GetDesc().Format;
 			device->CreateShaderResourceView(TextureVector[i].Get(), &srvDesc, matDescHeapH);
-		}
+		}		
+		matDescHeapH.ptr += incSize;
 
-		
+		if (sphTexVector[i] == nullptr) {
+			srvDesc.Format = _whiteTex->GetDesc().Format;
+			device->CreateShaderResourceView(_whiteTex.Get(), &srvDesc, matDescHeapH);
+		}
+		else {
+			srvDesc.Format = sphTexVector[i]->GetDesc().Format;
+			device->CreateShaderResourceView(sphTexVector[i].Get(), &srvDesc, matDescHeapH);
+		}
+		matDescHeapH.ptr += incSize;
+
+		if (spaTexVector[i] == nullptr) {
+			srvDesc.Format = _blackTex->GetDesc().Format;
+			device->CreateShaderResourceView(_blackTex.Get(), &srvDesc, matDescHeapH);
+		}
+		else {
+			srvDesc.Format = spaTexVector[i]->GetDesc().Format;
+			device->CreateShaderResourceView(spaTexVector[i].Get(), &srvDesc, matDescHeapH);
+		}
 		matDescHeapH.ptr += incSize;
 	}
 }
@@ -132,7 +200,7 @@ void Material::Draw(ComPtr<ID3D12Device> device, ComPtr<ID3D12GraphicsCommandLis
 
 	unsigned int indexOffset = 0;
 	int i = 0;
-	auto cbvsrvIncSize = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV) * 2;
+	auto cbvsrvIncSize = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV) * 4;
 	for (auto& m : MaterialVector) {
 		command_list->SetGraphicsRootDescriptorTable(1, materialHandle);
 		command_list->DrawIndexedInstanced(m.indicesNum, 1, indexOffset, 0, 0);

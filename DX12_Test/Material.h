@@ -49,10 +49,14 @@ public:
 
 	//白テクスチャ
 	ComPtr<ID3D12Resource> _whiteTex;
+	//黒テクスチャ
+	ComPtr<ID3D12Resource> _blackTex;
 
 	std::vector<PMDMaterial> PmdMaterialVector;
 	std::vector<MaterialData> MaterialVector;
 	std::vector<ComPtr<ID3D12Resource>> TextureVector;
+	std::vector<ComPtr<ID3D12Resource>> sphTexVector;
+	std::vector<ComPtr<ID3D12Resource>> spaTexVector;
 
 	void Draw(ComPtr<ID3D12Device> device, ComPtr<ID3D12GraphicsCommandList> command_list);
 

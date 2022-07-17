@@ -14,6 +14,30 @@ Texture::Texture(ComPtr<ID3D12Device> device, D3D12_CPU_DESCRIPTOR_HANDLE resour
 	//TexBuffer = LoadTextureFromFile(device, );
 }
 
+/// <summary>
+/// ファイル名から拡張子を取得
+/// </summary>
+/// <param name="path"></param>
+/// <returns></returns>
+std::string Texture::GetExtension(const std::string& path) {
+	int index = path.rfind('.');
+	return path.substr(index + 1, path.length() - index - 1);
+}
+
+/// <summary>
+/// テクスチャのパスをセパレーター文字で分離
+/// </summary>
+/// <param name="path"></param>
+/// <param name="splitter"></param>
+/// <returns></returns>
+std::pair<std::string, std::string> Texture::SplitFileName(const std::string& path, const char splitter) {
+	int index = path.find(splitter);
+	pair<std::string, std::string> ret;
+	ret.first = path.substr(0, index);
+	ret.second = path.substr(index + 1, path.length() - index - 1);
+	return ret;
+}
+
 ///モデルのパスとテクスチャのパスから合成パスを得る
 ///@param modelPath アプリケーションから見たpmdモデルのパス
 ///@param texPath PMDモデルから見たテクスチャのパス
@@ -238,6 +262,50 @@ ID3D12Resource* Texture::CreateWhiteTexture(ComPtr<ID3D12Device> device) {
 
 	result = whiteBuff->WriteToSubresource(0, nullptr, data.data(), 4 * 4, static_cast<UINT>(data.size()));
 	return whiteBuff;
+}
+
+/// <summary>
+/// 黒テクスチャ
+/// </summary>
+/// <param name="device"></param>
+/// <returns></returns>
+ID3D12Resource* Texture::CreateBlackTexture(ComPtr<ID3D12Device> device) {
+	D3D12_HEAP_PROPERTIES texHeapProp = {};
+	texHeapProp.Type = D3D12_HEAP_TYPE_CUSTOM;//特殊な設定なのでdefaultでもuploadでもなく
+	texHeapProp.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_WRITE_BACK;//ライトバックで
+	texHeapProp.MemoryPoolPreference = D3D12_MEMORY_POOL_L0;//転送がL0つまりCPU側から直で
+	texHeapProp.CreationNodeMask = 0;//単一アダプタのため0
+	texHeapProp.VisibleNodeMask = 0;//単一アダプタのため0
+
+	D3D12_RESOURCE_DESC resDesc = {};
+	resDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	resDesc.Width = 4;//幅
+	resDesc.Height = 4;//高さ
+	resDesc.DepthOrArraySize = 1;
+	resDesc.SampleDesc.Count = 1;
+	resDesc.SampleDesc.Quality = 0;//
+	resDesc.MipLevels = 1;//
+	resDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+	resDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;//レイアウトについては決定しない
+	resDesc.Flags = D3D12_RESOURCE_FLAG_NONE;//とくにフラグなし
+
+	ID3D12Resource* blackBuff = nullptr;
+	auto result = device->CreateCommittedResource(
+		&texHeapProp,
+		D3D12_HEAP_FLAG_NONE,//特に指定なし
+		&resDesc,
+		D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
+		nullptr,
+		IID_PPV_ARGS(&blackBuff)
+	);
+	if (FAILED(result)) {
+		return nullptr;
+	}
+	std::vector<unsigned char> data(4 * 4 * 4);
+	std::fill(data.begin(), data.end(), 0x00);
+
+	result = blackBuff->WriteToSubresource(0, nullptr, data.data(), 4 * 4, static_cast<UINT>(data.size()));
+	return blackBuff;
 }
 
 /*void Texture::Initialize(ComPtr<ID3D12Device> device, D3D12_CPU_DESCRIPTOR_HANDLE resourceHeapHandle) {

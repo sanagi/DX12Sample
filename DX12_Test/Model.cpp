@@ -2,7 +2,8 @@
 
 Model::Model(ComPtr<ID3D12Device> device, const char* modelName, const char* mode) {
 	FILE* fp = nullptr;
-	auto error = fopen_s(&fp, "Model/初音ミク.pmd", "rb");
+	auto error = fopen_s(&fp, "Model/Lat式ミクVer2.31_Normal.pmd", "rb");
+	//auto error = fopen_s(&fp, "Model/巡音ルカ.pmd", "rb");
 	if (fp == nullptr) {
 		char strerr[256];
 		strerror_s(strerr, 256, error);

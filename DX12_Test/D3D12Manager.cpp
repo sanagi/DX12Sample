@@ -326,7 +326,7 @@ HRESULT D3D12Manager::CreateRootSignature() {
 	descTblRange[1].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 
 	//テクスチャ1つ目
-	descTblRange[2].NumDescriptors = 1;
+	descTblRange[2].NumDescriptors = 3;
 	descTblRange[2].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;//種別はテクスチャ
 	descTblRange[2].BaseShaderRegister = 0;
 	descTblRange[2].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
