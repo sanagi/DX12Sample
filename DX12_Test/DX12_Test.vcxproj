@@ -142,20 +142,24 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Application.cpp" />
     <ClCompile Include="D3D12Manager.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Material.cpp" />
     <ClCompile Include="Matrix.cpp" />
     <ClCompile Include="Model.cpp" />
+    <ClCompile Include="PMDRenderer.cpp" />
     <ClCompile Include="Texture.cpp" />
     <ClCompile Include="Vertices.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Application.h" />
     <ClInclude Include="BaseInclude.h" />
     <ClInclude Include="D3D12Manager.h" />
     <ClInclude Include="Material.h" />
     <ClInclude Include="Matrix.h" />
     <ClInclude Include="Model.h" />
+    <ClInclude Include="PMDRenderer.h" />
     <ClInclude Include="Texture.h" />
     <ClInclude Include="Vertices.h" />
   </ItemGroup>
