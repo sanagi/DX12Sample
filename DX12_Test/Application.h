@@ -1,4 +1,5 @@
 #include "D3D12Manager.h"
+#include "Matrix.h"
 #include "PMDRenderer.h"
 #include "PMDActor.h"
 
@@ -6,11 +7,12 @@
 class Application
 {
 private:
-	//ここに必要な変数(バッファやヒープなど)を書く
+
 	//ウィンドウ周り
 	WNDCLASSEX _windowClass;
 	HWND _hwnd;
 	std::shared_ptr<D3D12Manager> _dx12;
+	std::shared_ptr<Matrix> _matrix;
 	std::shared_ptr<PMDRenderer> _pmdRenderer;
 	std::shared_ptr<PMDActor> _pmdActor;
 

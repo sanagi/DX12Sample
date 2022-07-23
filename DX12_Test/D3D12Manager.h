@@ -17,7 +17,7 @@ public:
 	//描画
 	void BeginDraw();
 	void SetRenderer(ID3D12PipelineState* pipelineState, ID3D12RootSignature* rootSignature);
-	void SetScene();
+	void SetScene(std::shared_ptr<Matrix> matrix);
 	void EndDraw();
 
 private:
@@ -52,24 +52,6 @@ private:
 	//ビューポート
 	std::unique_ptr<D3D12_VIEWPORT> _viewPort;
 
-	//シーンを構成する行列
-	Matrix* _sceneMatrix;
-	//リソース用ヒープ
-	ComPtr<ID3D12DescriptorHeap> _resourceHeaps = nullptr;
-	//Matrix::SceneData* _mappedSceneData;
-	//ComPtr<ID3D12DescriptorHeap> _sceneDescHeap = nullptr;
-
-	//シーンを構成するバッファまわり
-	ComPtr<ID3D12Resource> _sceneConstBuff = nullptr;
-
-	struct SceneData {
-		DirectX::XMMATRIX view;//ビュー行列
-		DirectX::XMMATRIX proj;//プロジェクション行列
-		DirectX::XMFLOAT3 eye;//視点座標
-	};
-	SceneData* _mappedSceneData;
-	ComPtr<ID3D12DescriptorHeap> _sceneDescHeap = nullptr;
-
 	//フェンス
 	ComPtr<ID3D12Fence> _queueFence;
 	UINT64 _fenceValue = 0;
@@ -86,11 +68,6 @@ private:
 	//フェンス、スワップチェイン
 	HRESULT CreateFence(); //フェンス
 	HRESULT CreateSwapChain(); //スワップチェイン
-
-	//シーン作成
-	void CreateScene(); //シーンごと作成
-	HRESULT CreateSceneView();
-	HRESULT CreateResourceHeap();
 
 	//レンダーターゲット系
 	HRESULT CreateFinalRenderTargetView();

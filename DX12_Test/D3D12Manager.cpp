@@ -28,39 +28,11 @@ D3D12Manager::D3D12Manager(HWND hwnd) : _windowHandle(hwnd) {
 	CreateFinalRenderTargetView();
 	//深度バッファ作成
 	CreateDepthStencilBuffer();
-
-	//リソース用ヒープ
-	//CreateScene();
-	
-	CreateResourceHeap();
-
-	auto basicHeapHandle = _resourceHeaps->GetCPUDescriptorHandleForHeapStart();
-
-	//行列
-	_sceneMatrix = new Matrix(_device, _winSize.cx, _winSize.cy, basicHeapHandle);
 }
 
 D3D12Manager::~D3D12Manager() {}
 
 #pragma endregion
-
-/// <summary>
-/// リソース(定数バッファ、テクスチャ)用ヒープ作成
-/// </summary>
-/// <returns></returns>
-HRESULT D3D12Manager::CreateResourceHeap() {
-	HRESULT hr{};
-
-	D3D12_DESCRIPTOR_HEAP_DESC heap_desc{};
-	D3D12_DESCRIPTOR_HEAP_DESC descHeapDesc = {};
-	descHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;//シェーダから見えるように
-	descHeapDesc.NodeMask = 0;//マスクは0
-	descHeapDesc.NumDescriptors = 2;//SRV1つとCBV1つ
-	descHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;//デスクリプタヒープ種別
-	hr = _device->CreateDescriptorHeap(&descHeapDesc, IID_PPV_ARGS(_resourceHeaps.GetAddressOf()));//生成
-
-	return hr;
-}
 
 #pragma region 初期化
 
@@ -242,71 +214,6 @@ HRESULT D3D12Manager::CreateSwapChain() {
 
 #pragma endregion
 
-#pragma region シーン作成
-
-void D3D12Manager::CreateScene() {
-	//_sceneMatrix = new Matrix();
-	//_sceneMatrix->CreateSceneView(_device, _winSize.cx, _winSize.cy);
-	//return Matrix::CreateSceneView(_device, _winSize.cx, _winSize.cy, _mappedSceneData, _sceneDescHeap);
-	//CreateSceneView();
-}
-
-//ビュープロジェクション用ビューの生成
-HRESULT D3D12Manager::CreateSceneView() {
-	DXGI_SWAP_CHAIN_DESC1 desc = {};
-	auto result = _swapChain->GetDesc1(&desc);
-	auto heapProp = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
-	auto resDesc = CD3DX12_RESOURCE_DESC::Buffer((sizeof(SceneData) + 0xff) & ~0xff);
-	//定数バッファ作成
-	result = _device->CreateCommittedResource(
-		&heapProp,
-		D3D12_HEAP_FLAG_NONE,
-		&resDesc,
-		D3D12_RESOURCE_STATE_GENERIC_READ,
-		nullptr,
-		IID_PPV_ARGS(_sceneConstBuff.ReleaseAndGetAddressOf())
-	);
-
-	if (FAILED(result)) {
-		assert(SUCCEEDED(result));
-		return result;
-	}
-
-	_mappedSceneData = nullptr;//マップ先を示すポインタ
-	result = _sceneConstBuff->Map(0, nullptr, (void**)&_mappedSceneData);//マップ
-
-	XMFLOAT3 eye(0, 15, -15);
-	XMFLOAT3 target(0, 15, 0);
-	XMFLOAT3 up(0, 1, 0);
-	_mappedSceneData->view = XMMatrixLookAtLH(XMLoadFloat3(&eye), XMLoadFloat3(&target), XMLoadFloat3(&up));
-	_mappedSceneData->proj = XMMatrixPerspectiveFovLH(XM_PIDIV4,//画角は45°
-		static_cast<float>(desc.Width) / static_cast<float>(desc.Height),//アス比
-		0.1f,//近い方
-		1000.0f//遠い方
-	);
-	_mappedSceneData->eye = eye;
-
-	D3D12_DESCRIPTOR_HEAP_DESC descHeapDesc = {};
-	descHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;//シェーダから見えるように
-	descHeapDesc.NodeMask = 0;//マスクは0
-	descHeapDesc.NumDescriptors = 1;//
-	descHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;//デスクリプタヒープ種別
-	result = _device->CreateDescriptorHeap(&descHeapDesc, IID_PPV_ARGS(_sceneDescHeap.ReleaseAndGetAddressOf()));//生成
-
-	////デスクリプタの先頭ハンドルを取得しておく
-	auto heapHandle = _sceneDescHeap->GetCPUDescriptorHandleForHeapStart();
-
-	D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
-	cbvDesc.BufferLocation = _sceneConstBuff->GetGPUVirtualAddress();
-	cbvDesc.SizeInBytes = _sceneConstBuff->GetDesc().Width;
-	//定数バッファビューの作成
-	_device->CreateConstantBufferView(&cbvDesc, heapHandle);
-	return result;
-
-}
-
-#pragma endregion
-
 #pragma region レンダーターゲット
 
 //レンダーターゲットビューを作る
@@ -461,19 +368,12 @@ void D3D12Manager::SetRenderer(ID3D12PipelineState* pipelineState, ID3D12RootSig
 }
 
 /// <summary>
-/// 現在のシーン(ビュープロジェクション)をセット
+/// 現在のシーン(行列)をセット
 /// </summary>
-void D3D12Manager::SetScene() {
-	//ID3D12DescriptorHeap* sceneheaps[] = { _sceneMatrix->GetSceneDescHeap().Get() };
-	//_commandList->SetDescriptorHeaps(1, sceneheaps);
-	//_commandList->SetGraphicsRootDescriptorTable(0, _sceneMatrix->GetSceneDescHeap()->GetGPUDescriptorHandleForHeapStart());
-	//現在のシーン(ビュープロジェクション)をセット
-	ID3D12DescriptorHeap* sceneheaps[] = { _resourceHeaps.Get() };
+void D3D12Manager::SetScene(std::shared_ptr<Matrix> sceneMatrix) {
+	ID3D12DescriptorHeap* sceneheaps[] = { sceneMatrix->GetDescHeap().Get() };
 	_commandList->SetDescriptorHeaps(1, sceneheaps);
-	_commandList->SetGraphicsRootDescriptorTable(0, _resourceHeaps->GetGPUDescriptorHandleForHeapStart());
-	
-	
-	_sceneMatrix->Rotate();
+	_commandList->SetGraphicsRootDescriptorTable(0, sceneMatrix->GetDescHeap()->GetGPUDescriptorHandleForHeapStart());
 }
 
 /// <summary>

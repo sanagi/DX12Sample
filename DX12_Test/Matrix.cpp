@@ -1,10 +1,12 @@
 #include "Matrix.h"
 
-Matrix::Matrix(ComPtr<ID3D12Device> device, int width, int height, D3D12_CPU_DESCRIPTOR_HANDLE resourceHeapHandle) {
-	Initialize(device, width, height, resourceHeapHandle);
+#pragma region 初期化
+
+Matrix::Matrix(ComPtr<ID3D12Device> device, int width, int height) {
+	Initialize(device, width, height);
 }
 
-void Matrix::Initialize(ComPtr<ID3D12Device> device, int width, int height, D3D12_CPU_DESCRIPTOR_HANDLE resourceHeapHandle) {
+void Matrix::Initialize(ComPtr<ID3D12Device> device, int width, int height) {
 	HRESULT hr{};
 
 	//使用する行列作成
@@ -37,17 +39,40 @@ void Matrix::Initialize(ComPtr<ID3D12Device> device, int width, int height, D3D1
 	_mapMatrix->view = _viewMat;
 	_mapMatrix->proj = _projMat;
 
+	//リソース用のヒープ
+	D3D12_DESCRIPTOR_HEAP_DESC descHeapDesc = {};
+	descHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;//シェーダから見えるように
+	descHeapDesc.NodeMask = 0;//マスクは0
+	descHeapDesc.NumDescriptors = 1;//
+	descHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;//デスクリプタヒープ種別
+	device->CreateDescriptorHeap(&descHeapDesc, IID_PPV_ARGS(_matrixDescHeap.ReleaseAndGetAddressOf()));//生成
+
 	//バッファビュー用ディスクリプタ
 	D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
 	cbvDesc.BufferLocation = _constBuffer->GetGPUVirtualAddress();
 	cbvDesc.SizeInBytes = static_cast<UINT>(_constBuffer->GetDesc().Width);
 
+	D3D12_CPU_DESCRIPTOR_HANDLE resourceHeapHandle = _matrixDescHeap->GetCPUDescriptorHandleForHeapStart();
+
 	//定数バッファビューの作成
 	device->CreateConstantBufferView(&cbvDesc, resourceHeapHandle);
 }
 
-void Matrix::Rotate() {
-	_angle += 0.01;
-	_worldMat = XMMatrixRotationY(_angle);
+#pragma endregion
+
+#pragma region ループ時
+
+void Matrix::Rotate(float angle) {
+	_worldMat = XMMatrixRotationY(angle);
 	_mapMatrix->world = _worldMat;
 }
+
+#pragma endregion
+
+#pragma region ゲッター
+
+ComPtr<ID3D12DescriptorHeap> Matrix::GetDescHeap() {
+	return _matrixDescHeap;
+}
+
+#pragma endregion

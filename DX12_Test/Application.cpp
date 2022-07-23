@@ -67,9 +67,9 @@ void Application::Run() {
 			//PMD用の描画パイプラインに合わせる
 			_dx12->SetRenderer(_pmdRenderer->GetPipelineState(), _pmdRenderer->GetRootSignature());
 
-			_dx12->SetScene();
+			_dx12->SetScene(_matrix);
 
-			//_pmdActor->Update();
+			_pmdActor->Update(_matrix);
 			_pmdActor->Draw(_dx12->GetDevice(), _dx12->GetCommandList());
 
 			_dx12->EndDraw();
@@ -83,8 +83,9 @@ bool Application::Init() {
 
 	//DirectX12ラッパー生成＆初期化
 	_dx12.reset(new D3D12Manager(_hwnd));
+	_matrix.reset(new Matrix(_dx12->GetDevice(), window_width, window_height));
 	_pmdRenderer.reset(new PMDRenderer(_dx12->GetDevice(), L"SimpleVertexShader.hlsl", L"SimplePixelShader.hlsl"));
-	_pmdActor.reset(new PMDActor(_dx12->GetDevice(), "Model/初音ミク.pmd", *_pmdRenderer));
+	_pmdActor.reset(new PMDActor(_dx12->GetDevice(), "Model/Lat式ミクVer2.31_Normal.pmd", *_pmdRenderer));
 
 	return true;
 }
