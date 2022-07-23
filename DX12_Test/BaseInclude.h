@@ -1,3 +1,5 @@
+#pragma once
+
 #include <Windows.h>
 #include <stdlib.h>
 #include<tchar.h>

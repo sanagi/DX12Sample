@@ -1,10 +1,11 @@
 #pragma once
 #include "Texture.h"
+#include "PMDRenderer.h"
 
 class Material
 {
 public:
-	Material(ComPtr<ID3D12Device> device, FILE* fp, std::string modelPath);
+	Material(ComPtr<ID3D12Device> device, FILE* fp, std::string modelPath, int sizeNum, PMDRenderer renderer);
 	~Material();
 
 #pragma pack(1)//ここから1バイトパッキング…アライメントは発生しない
@@ -47,25 +48,22 @@ public:
 		AdditionarlMaterial additionarl;
 	};
 
-	//白テクスチャ
-	ComPtr<ID3D12Resource> _whiteTex;
-	//黒テクスチャ
-	ComPtr<ID3D12Resource> _blackTex;
-
 	std::vector<PMDMaterial> PmdMaterialVector;
 	std::vector<MaterialData> MaterialVector;
 	std::vector<ComPtr<ID3D12Resource>> TextureVector;
 	std::vector<ComPtr<ID3D12Resource>> sphTexVector;
 	std::vector<ComPtr<ID3D12Resource>> spaTexVector;
 
-	void Draw(ComPtr<ID3D12Device> device, ComPtr<ID3D12GraphicsCommandList> command_list);
+	void Draw(ComPtr<ID3D12Device> device, ComPtr<ID3D12GraphicsCommandList> command_list, int sizeNum);
 
 private:
+	PMDRenderer _renderer;
+
 	unsigned int _materialNum; //マテリアル数
 	ID3D12DescriptorHeap* _descHeap = nullptr;
 
 	void Load(ComPtr<ID3D12Device> device, FILE* fp, std::string modelPath);
-	void CreateResource(ComPtr<ID3D12Device> device);
+	void CreateResource(ComPtr<ID3D12Device> device, int sizeNum);
 
 };
 

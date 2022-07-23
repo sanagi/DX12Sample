@@ -1,11 +1,8 @@
 #include "Material.h"
 
-Material::Material(ComPtr<ID3D12Device> device, FILE* fp, std::string modelPath) {
-	_whiteTex = Texture::CreateWhiteTexture(device);
-	_blackTex = Texture::CreateBlackTexture(device);
-
+Material::Material(ComPtr<ID3D12Device> device, FILE* fp, std::string modelPath, int sizeNum, PMDRenderer renderer) : _renderer(renderer) {
 	Load(device, fp, modelPath);
-	CreateResource(device);
+	CreateResource(device, sizeNum);
 }
 
 Material::~Material() {
@@ -97,7 +94,7 @@ void Material::Load(ComPtr<ID3D12Device> device, FILE* fp, std::string modelPath
 	}
 }
 
-void Material::CreateResource(ComPtr<ID3D12Device> device) {
+void Material::CreateResource(ComPtr<ID3D12Device> device, int sizeNum) {
 	//TODO:マテリアル配置の無駄な空きを作らない方法は？
 
 	//マテリアルバッファを作成
@@ -128,7 +125,7 @@ void Material::CreateResource(ComPtr<ID3D12Device> device) {
 	materialBuff->Unmap(0, nullptr);
 
 	D3D12_DESCRIPTOR_HEAP_DESC materialDescHeapDesc = {};
-	materialDescHeapDesc.NumDescriptors = _materialNum * 4;//マテリアルとテクスチャ2つ(普通のとスフィア)
+	materialDescHeapDesc.NumDescriptors = _materialNum * sizeNum;
 	materialDescHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 	materialDescHeapDesc.NodeMask = 0;
 
@@ -156,8 +153,8 @@ void Material::CreateResource(ComPtr<ID3D12Device> device) {
 
 		//テクスチャ用のリソースビュー
 		if (TextureVector[i].Get() == nullptr) {
-			srvDesc.Format = _whiteTex->GetDesc().Format;
-			device->CreateShaderResourceView(_whiteTex.Get(), &srvDesc, matDescHeapH);
+			srvDesc.Format = _renderer.WhiteTex->GetDesc().Format;
+			device->CreateShaderResourceView(_renderer.WhiteTex.Get(), &srvDesc, matDescHeapH);
 		}
 		else {
 			srvDesc.Format = TextureVector[i]->GetDesc().Format;
@@ -166,8 +163,8 @@ void Material::CreateResource(ComPtr<ID3D12Device> device) {
 		matDescHeapH.ptr += incSize;
 
 		if (sphTexVector[i] == nullptr) {
-			srvDesc.Format = _whiteTex->GetDesc().Format;
-			device->CreateShaderResourceView(_whiteTex.Get(), &srvDesc, matDescHeapH);
+			srvDesc.Format = _renderer.WhiteTex->GetDesc().Format;
+			device->CreateShaderResourceView(_renderer.WhiteTex.Get(), &srvDesc, matDescHeapH);
 		}
 		else {
 			srvDesc.Format = sphTexVector[i]->GetDesc().Format;
@@ -176,8 +173,8 @@ void Material::CreateResource(ComPtr<ID3D12Device> device) {
 		matDescHeapH.ptr += incSize;
 
 		if (spaTexVector[i] == nullptr) {
-			srvDesc.Format = _blackTex->GetDesc().Format;
-			device->CreateShaderResourceView(_blackTex.Get(), &srvDesc, matDescHeapH);
+			srvDesc.Format = _renderer.BlackTex->GetDesc().Format;
+			device->CreateShaderResourceView(_renderer.BlackTex.Get(), &srvDesc, matDescHeapH);
 		}
 		else {
 			srvDesc.Format = spaTexVector[i]->GetDesc().Format;
@@ -191,7 +188,7 @@ void Material::CreateResource(ComPtr<ID3D12Device> device) {
 /// ディスクリプタのセット
 /// </summary>
 /// <param name="command_list"></param>
-void Material::Draw(ComPtr<ID3D12Device> device, ComPtr<ID3D12GraphicsCommandList> command_list){
+void Material::Draw(ComPtr<ID3D12Device> device, ComPtr<ID3D12GraphicsCommandList> command_list, int sizeNum){
 	//ヒープのセット
 	command_list->SetDescriptorHeaps(1, &_descHeap);
 
@@ -200,7 +197,7 @@ void Material::Draw(ComPtr<ID3D12Device> device, ComPtr<ID3D12GraphicsCommandLis
 
 	unsigned int indexOffset = 0;
 	int i = 0;
-	auto cbvsrvIncSize = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV) * 4;
+	auto cbvsrvIncSize = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV) * sizeNum;
 	for (auto& m : MaterialVector) {
 		command_list->SetGraphicsRootDescriptorTable(1, materialHandle);
 		command_list->DrawIndexedInstanced(m.indicesNum, 1, indexOffset, 0, 0);
