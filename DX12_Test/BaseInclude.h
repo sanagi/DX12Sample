@@ -1,3 +1,5 @@
+#pragma once
+
 #include <Windows.h>
 #include <stdlib.h>
 #include<tchar.h>
@@ -12,6 +14,7 @@
 #include <vector>
 #include <wrl/client.h>
 #include <string>
+#include <map>
 
 #pragma comment(lib,"DirectXTex.lib")
 #pragma comment(lib, "d3d12.lib")
