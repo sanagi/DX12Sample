@@ -54,6 +54,8 @@ private:
 
 	//シーンを構成する行列
 	Matrix* _sceneMatrix;
+	//リソース用ヒープ
+	ComPtr<ID3D12DescriptorHeap> _resourceHeaps = nullptr;
 	//Matrix::SceneData* _mappedSceneData;
 	//ComPtr<ID3D12DescriptorHeap> _sceneDescHeap = nullptr;
 
@@ -88,6 +90,7 @@ private:
 	//シーン作成
 	void CreateScene(); //シーンごと作成
 	HRESULT CreateSceneView();
+	HRESULT CreateResourceHeap();
 
 	//レンダーターゲット系
 	HRESULT CreateFinalRenderTargetView();

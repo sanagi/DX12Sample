@@ -1,10 +1,10 @@
 #pragma once
-#include "BaseInclude.h"
+#include "Material.h"
 
 class Model
 {
 public:
-	
+
 	struct PMDHeader {
 		float version;
 		char model_name[20];
@@ -21,11 +21,13 @@ public:
 		uint16_t dummy;
 	};
 
-	Model(FILE* fp, ComPtr<ID3D12Device> device, const char* modelName);
+	Model(ComPtr<ID3D12Device> device, const char* modelName, const char* mode, PMDRenderer renderer);
 	~Model();
-	void SetRenderBuffer(ComPtr<ID3D12GraphicsCommandList> command_list);
+
+	void Draw(ComPtr<ID3D12Device> device, ComPtr<ID3D12GraphicsCommandList> command_list);
 
 private:
+	Material* _material;
 
 	unsigned int _indicesNum; //インデックス数
 

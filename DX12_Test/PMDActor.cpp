@@ -14,7 +14,7 @@ PMDActor::PMDActor(ComPtr<ID3D12Device> device, const char* filepath, PMDRendere
 		strerror_s(strerr, 256, error);
 	}
 	//モデル生成
-	_model = new Model(fp, device, filepath);
+	//_model = new Model(fp, device, filepath);
 
 	//マテリアル作成
 	_material = new Material(device, fp, filepath, MATERIAL_DESC_SIZE, renderer);
@@ -25,8 +25,8 @@ PMDActor::PMDActor(ComPtr<ID3D12Device> device, const char* filepath, PMDRendere
 	//Matrix::CreateTransformView(device, _mappedTransform, _transformHeap);
 	//_transformMatrix->GetTransformData()->world = XMMatrixIdentity();
 
-	_transform.world = XMMatrixIdentity();
-	CreateTransformView(device);
+	//_transform.world = XMMatrixIdentity();
+	//CreateTransformView(device);
 
 	fclose(fp);
 }
@@ -38,7 +38,7 @@ PMDActor::~PMDActor()
 
 #pragma endregion
 
-HRESULT PMDActor::CreateTransformView(ComPtr<ID3D12Device> device) {
+/*HRESULT PMDActor::CreateTransformView(ComPtr<ID3D12Device> device) {
 	//GPUバッファ作成
 	auto buffSize = sizeof(Matrix::Transform);
 	buffSize = (buffSize + 0xff) & ~0xff;
@@ -85,7 +85,7 @@ HRESULT PMDActor::CreateTransformView(ComPtr<ID3D12Device> device) {
 	device->CreateConstantBufferView(&cbvDesc, _transformHeap->GetCPUDescriptorHandleForHeapStart());
 
 	return S_OK;
-}
+}*/
 
 #pragma region 描画ループ
 
@@ -99,16 +99,16 @@ void PMDActor::Update() {
 void PMDActor::Draw(ComPtr<ID3D12Device> device, ComPtr<ID3D12GraphicsCommandList> command_list) {
 
 	//モデル描画
-	_model->SetRenderBuffer(command_list);
+	//_model->SetRenderBuffer(command_list);
 
 	//トランスフォーム用のヒープ指定
 	//ID3D12DescriptorHeap* transheaps[] = {_transformMatrix->GetTransformHeap().Get()};
 	//command_list->SetDescriptorHeaps(1, transheaps);
 	//command_list->SetGraphicsRootDescriptorTable(1, _transformMatrix->GetTransformHeap()->GetGPUDescriptorHandleForHeapStart());
 	
-	ID3D12DescriptorHeap* transheaps[] = { _transformHeap.Get() };
-	command_list->SetDescriptorHeaps(1, transheaps);
-	command_list->SetGraphicsRootDescriptorTable(1, _transformHeap->GetGPUDescriptorHandleForHeapStart());
+	//ID3D12DescriptorHeap* transheaps[] = { _transformHeap.Get() };
+	//command_list->SetDescriptorHeaps(1, transheaps);
+	//command_list->SetGraphicsRootDescriptorTable(1, _transformHeap->GetGPUDescriptorHandleForHeapStart());
 
 	//マテリアル描画
 	_material->Draw(device, command_list, MATERIAL_DESC_SIZE);

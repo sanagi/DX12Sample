@@ -6,11 +6,7 @@ SamplerState smp:register(s0);//0番スロットに設定されたサンプラ
 
 
 float4 PSMain(BasicType input) : SV_TARGET{
-
-	return float4(1,0,0,1);
-	//return float4(.Sample(smp,input.uv));
-	//return float4(input.normal.xyz,1);
-	/*float3 light = normalize(float3(1,-1,1)); //光
+	float3 light = normalize(float3(1,-1,1)); //光
 
 	float3 lightColor = float3(1, 1, 1); //ライト色
 
@@ -33,6 +29,4 @@ float4 PSMain(BasicType input) : SV_TARGET{
 		+ spa.Sample(smp, sphereMapUV) //スフィア加算
 		+ float4(specularB * specular.rgb, 1) //スぺキュラ
 		, float4(texColor * ambient, 1)); //アンビエント
-		*/
-		
 }

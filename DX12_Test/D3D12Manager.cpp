@@ -30,12 +30,37 @@ D3D12Manager::D3D12Manager(HWND hwnd) : _windowHandle(hwnd) {
 	CreateDepthStencilBuffer();
 
 	//リソース用ヒープ
-	CreateScene();
+	//CreateScene();
+	
+	CreateResourceHeap();
+
+	auto basicHeapHandle = _resourceHeaps->GetCPUDescriptorHandleForHeapStart();
+
+	//行列
+	_sceneMatrix = new Matrix(_device, _winSize.cx, _winSize.cy, basicHeapHandle);
 }
 
 D3D12Manager::~D3D12Manager() {}
 
 #pragma endregion
+
+/// <summary>
+/// リソース(定数バッファ、テクスチャ)用ヒープ作成
+/// </summary>
+/// <returns></returns>
+HRESULT D3D12Manager::CreateResourceHeap() {
+	HRESULT hr{};
+
+	D3D12_DESCRIPTOR_HEAP_DESC heap_desc{};
+	D3D12_DESCRIPTOR_HEAP_DESC descHeapDesc = {};
+	descHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;//シェーダから見えるように
+	descHeapDesc.NodeMask = 0;//マスクは0
+	descHeapDesc.NumDescriptors = 2;//SRV1つとCBV1つ
+	descHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;//デスクリプタヒープ種別
+	hr = _device->CreateDescriptorHeap(&descHeapDesc, IID_PPV_ARGS(_resourceHeaps.GetAddressOf()));//生成
+
+	return hr;
+}
 
 #pragma region 初期化
 
@@ -223,7 +248,7 @@ void D3D12Manager::CreateScene() {
 	//_sceneMatrix = new Matrix();
 	//_sceneMatrix->CreateSceneView(_device, _winSize.cx, _winSize.cy);
 	//return Matrix::CreateSceneView(_device, _winSize.cx, _winSize.cy, _mappedSceneData, _sceneDescHeap);
-	CreateSceneView();
+	//CreateSceneView();
 }
 
 //ビュープロジェクション用ビューの生成
@@ -443,9 +468,12 @@ void D3D12Manager::SetScene() {
 	//_commandList->SetDescriptorHeaps(1, sceneheaps);
 	//_commandList->SetGraphicsRootDescriptorTable(0, _sceneMatrix->GetSceneDescHeap()->GetGPUDescriptorHandleForHeapStart());
 	//現在のシーン(ビュープロジェクション)をセット
-	ID3D12DescriptorHeap* sceneheaps[] = { _sceneDescHeap.Get() };
+	ID3D12DescriptorHeap* sceneheaps[] = { _resourceHeaps.Get() };
 	_commandList->SetDescriptorHeaps(1, sceneheaps);
-	_commandList->SetGraphicsRootDescriptorTable(0, _sceneDescHeap->GetGPUDescriptorHandleForHeapStart());
+	_commandList->SetGraphicsRootDescriptorTable(0, _resourceHeaps->GetGPUDescriptorHandleForHeapStart());
+	
+	
+	_sceneMatrix->Rotate();
 }
 
 /// <summary>
