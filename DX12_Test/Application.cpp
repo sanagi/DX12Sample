@@ -84,7 +84,7 @@ bool Application::Init() {
 	//DirectX12ラッパー生成＆初期化
 	_dx12.reset(new D3D12Manager(_hwnd));
 	_pmdRenderer.reset(new PMDRenderer(_dx12->GetDevice(), L"SimpleVertexShader.hlsl", L"SimplePixelShader.hlsl"));
-	_pmdActor.reset(new Model(_dx12->GetDevice(), "Model/初音ミク.pmd", "rb", *_pmdRenderer));
+	_pmdActor.reset(new PMDActor(_dx12->GetDevice(), "Model/初音ミク.pmd", *_pmdRenderer));
 
 	return true;
 }

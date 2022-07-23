@@ -1,28 +1,21 @@
 #include "Model.h"
 
-const int MATERIAL_DESC_SIZE = 4; //マテリアル、基本テクスチャ、スフィア2種
+#pragma region コンストラクタ系
 
-Model::Model(ComPtr<ID3D12Device> device, const char* modelName, const char* mode, PMDRenderer renderer) {
-	FILE* fp = nullptr;
-	auto error = fopen_s(&fp, modelName, "rb");
-	//auto error = fopen_s(&fp, "Model/巡音ルカ.pmd", "rb");
-	if (fp == nullptr) {
-		char strerr[256];
-		strerror_s(strerr, 256, error);
-	}
+Model::Model(FILE* fp, ComPtr<ID3D12Device> device, const char* modelName) {
 
 	//ファイル読み込み
-	Open(fp, device, modelName, mode);
+	Open(fp, device, modelName, "rb");
 	//頂点情報とインデックス元にリソース作成
 	CreateResource(device, _vertices, _indices);
-	//マテリアル作成
-	_material = new Material(device, fp, modelName, MATERIAL_DESC_SIZE, renderer);
-
-	fclose(fp);
 }
 
 Model::~Model() {
 }
+
+#pragma endregion
+
+#pragma region ファイルを開く,リソース生成
 
 void Model::Open(FILE* fp, ComPtr<ID3D12Device> device, const char* modelName, const char* mode) {
 	HRESULT hr{};
@@ -106,14 +99,14 @@ void Model::CreateResource(ComPtr<ID3D12Device> device, std::vector<PMDVertex> v
 
 }
 
-void Model::Draw(ComPtr<ID3D12Device> device, ComPtr<ID3D12GraphicsCommandList> command_list) {
+
+#pragma endregion
+
+void Model::SetRenderBuffer(ComPtr<ID3D12GraphicsCommandList> command_list) {
 	//頂点情報のセット
 	command_list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST); //トポロジ指定
 	//バッファビューの指定
 	command_list->IASetVertexBuffers(0, 1, &_vbView);
 	//インデックスバッファビューの指定
 	command_list->IASetIndexBuffer(&_indexBufferView);
-
-	//マテリアルごとに描画
-	_material->Draw(device, command_list, MATERIAL_DESC_SIZE);
 }

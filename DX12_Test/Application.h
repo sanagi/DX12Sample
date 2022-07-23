@@ -12,7 +12,7 @@ private:
 	HWND _hwnd;
 	std::shared_ptr<D3D12Manager> _dx12;
 	std::shared_ptr<PMDRenderer> _pmdRenderer;
-	std::shared_ptr<Model> _pmdActor;
+	std::shared_ptr<PMDActor> _pmdActor;
 
 	//ゲーム用ウィンドウの生成
 	void CreateGameWindow(HWND& hwnd, WNDCLASSEX& windowClass);

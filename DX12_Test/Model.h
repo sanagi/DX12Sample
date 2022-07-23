@@ -1,5 +1,5 @@
 #pragma once
-#include "Material.h"
+#include "BaseInclude.h"
 
 class Model
 {
@@ -21,13 +21,11 @@ public:
 		uint16_t dummy;
 	};
 
-	Model(ComPtr<ID3D12Device> device, const char* modelName, const char* mode, PMDRenderer renderer);
+	Model(FILE* fp, ComPtr<ID3D12Device> device, const char* modelName);
 	~Model();
-
-	void Draw(ComPtr<ID3D12Device> device, ComPtr<ID3D12GraphicsCommandList> command_list);
+	void SetRenderBuffer(ComPtr<ID3D12GraphicsCommandList> command_list);
 
 private:
-	Material* _material;
 
 	unsigned int _indicesNum; //インデックス数
 
@@ -43,4 +41,3 @@ private:
 	void Open(FILE* fp, ComPtr<ID3D12Device> device, const char* modelName, const char* mode);
 	void CreateResource(ComPtr<ID3D12Device> device, std::vector<PMDVertex> vertices, std::vector<unsigned short> indices);
 };
-

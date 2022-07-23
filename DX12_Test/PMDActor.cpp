@@ -14,7 +14,7 @@ PMDActor::PMDActor(ComPtr<ID3D12Device> device, const char* filepath, PMDRendere
 		strerror_s(strerr, 256, error);
 	}
 	//モデル生成
-	//_model = new Model(fp, device, filepath);
+	_model = new Model(fp, device, "rb");
 
 	//マテリアル作成
 	_material = new Material(device, fp, filepath, MATERIAL_DESC_SIZE, renderer);
@@ -99,7 +99,7 @@ void PMDActor::Update() {
 void PMDActor::Draw(ComPtr<ID3D12Device> device, ComPtr<ID3D12GraphicsCommandList> command_list) {
 
 	//モデル描画
-	//_model->SetRenderBuffer(command_list);
+	_model->SetRenderBuffer(command_list);
 
 	//トランスフォーム用のヒープ指定
 	//ID3D12DescriptorHeap* transheaps[] = {_transformMatrix->GetTransformHeap().Get()};
