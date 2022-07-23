@@ -26,9 +26,9 @@ float4 PSMain(BasicType input) : SV_TARGET{
 	//テクスチャカラー
 	float4 texColor = tex.Sample(smp, input.uv);
 
-	return max(diffuseB * diffuse// * texColor //diffuse
-		//* sph.Sample(smp, sphereMapUV) //スフィア乗算
-		//+ spa.Sample(smp, sphereMapUV) //スフィア加算
+	return max(diffuseB * diffuse * texColor //diffuse
+		* sph.Sample(smp, sphereMapUV) //スフィア乗算
+		+ spa.Sample(smp, sphereMapUV) //スフィア加算
 		+ float4(specularB * specular.rgb, 1) //スぺキュラ
 		, float4(texColor * ambient, 1)); //アンビエント
 

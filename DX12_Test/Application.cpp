@@ -62,10 +62,10 @@ void Application::Run() {
 
 		if (_dx12 != nullptr) {
 			//全体の描画準備
-			_dx12->BeginDraw();
+			//_dx12->BeginDraw();
 
 			//PMD用の描画パイプラインに合わせる
-			_dx12->SetRenderer(_pmdRenderer->GetPipelineState(), _pmdRenderer->GetRootSignature());
+			//_dx12->SetRenderer(_pmdRenderer->GetPipelineState(), _pmdRenderer->GetRootSignature());
 
 			_dx12->Render();
 
@@ -88,8 +88,8 @@ bool Application::Init() {
 	CreateGameWindow(_hwnd, _windowClass);
 
 	//マネージャー初期化
-	_dx12.reset(new D3D12Manager(_hwnd));
-	_pmdRenderer.reset(new PMDRenderer(_dx12->GetDevice(), L"SimpleVertexShader.hlsl", L"SimplePixelShader.hlsl"));
+	_dx12.reset(new D3D12Manager(_hwnd, WINDOW_WIDTH, WINDOW_HEIGHT, L"SimpleVertexShader.hlsl", L"SimplePixelShader.hlsl"));
+	//_pmdRenderer.reset(new PMDRenderer(_dx12->GetDevice(), L"SimpleVertexShader.hlsl", L"SimplePixelShader.hlsl"));
 	//_pmdActor.reset(new PMDActor(_dx12->GetDevice(), "Model/初音ミク.pmd", *_pmdRenderer));
 
 	return true;
