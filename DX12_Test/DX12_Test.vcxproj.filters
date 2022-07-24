@@ -13,6 +13,24 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="ソース ファイル\PMD">
+      <UniqueIdentifier>{68a7a315-1287-4e44-aad4-ae62d8dad859}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ソース ファイル\PMX">
+      <UniqueIdentifier>{8296d6a9-9835-4dae-9bc8-0c759c4db65f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ヘッダー ファイル\PMD">
+      <UniqueIdentifier>{34d667d8-cd9e-4066-94dd-b20e760b1fae}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ヘッダー ファイル\PMX">
+      <UniqueIdentifier>{4a0d68dd-f97b-480d-b40a-56f2ab4c8394}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="リソース ファイル\PMD">
+      <UniqueIdentifier>{7907d048-ac59-426b-b155-077340806e37}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="リソース ファイル\PMX">
+      <UniqueIdentifier>{6b0b0df0-70c2-4c46-b21d-42dc213cee0f}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -30,17 +48,29 @@
     <ClCompile Include="Application.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="PMDRenderer.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
     <ClCompile Include="PMDActor.cpp">
-      <Filter>ソース ファイル</Filter>
+      <Filter>ソース ファイル\PMD</Filter>
     </ClCompile>
     <ClCompile Include="PMDMaterial.cpp">
-      <Filter>ソース ファイル</Filter>
+      <Filter>ソース ファイル\PMD</Filter>
     </ClCompile>
     <ClCompile Include="PMDModel.cpp">
-      <Filter>ソース ファイル</Filter>
+      <Filter>ソース ファイル\PMD</Filter>
+    </ClCompile>
+    <ClCompile Include="PMDRenderer.cpp">
+      <Filter>ソース ファイル\PMD</Filter>
+    </ClCompile>
+    <ClCompile Include="PMXRenderer.cpp">
+      <Filter>ソース ファイル\PMX</Filter>
+    </ClCompile>
+    <ClCompile Include="PMXActor.cpp">
+      <Filter>ソース ファイル\PMX</Filter>
+    </ClCompile>
+    <ClCompile Include="PMXModel.cpp">
+      <Filter>ソース ファイル\PMX</Filter>
+    </ClCompile>
+    <ClCompile Include="PMXMaterial.cpp">
+      <Filter>ソース ファイル\PMX</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -60,29 +90,58 @@
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
     <ClInclude Include="PMDRenderer.h">
-      <Filter>ヘッダー ファイル</Filter>
+      <Filter>ヘッダー ファイル\PMD</Filter>
     </ClInclude>
     <ClInclude Include="PMDActor.h">
-      <Filter>ヘッダー ファイル</Filter>
+      <Filter>ヘッダー ファイル\PMD</Filter>
     </ClInclude>
     <ClInclude Include="PMDMaterial.h">
-      <Filter>ヘッダー ファイル</Filter>
+      <Filter>ヘッダー ファイル\PMD</Filter>
     </ClInclude>
     <ClInclude Include="PMDModel.h">
+      <Filter>ヘッダー ファイル\PMD</Filter>
+    </ClInclude>
+    <ClInclude Include="PMXActor.h">
+      <Filter>ヘッダー ファイル\PMX</Filter>
+    </ClInclude>
+    <ClInclude Include="PMXRenderer.h">
+      <Filter>ヘッダー ファイル\PMX</Filter>
+    </ClInclude>
+    <ClInclude Include="PMXMaterial.h">
+      <Filter>ヘッダー ファイル\PMX</Filter>
+    </ClInclude>
+    <ClInclude Include="PMXModel.h">
+      <Filter>ヘッダー ファイル\PMX</Filter>
+    </ClInclude>
+    <ClInclude Include="resource.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="PMDToonVertexShader.hlsl">
-      <Filter>リソース ファイル</Filter>
+      <Filter>リソース ファイル\PMD</Filter>
     </FxCompile>
     <FxCompile Include="PMDToonPixelShader.hlsl">
-      <Filter>リソース ファイル</Filter>
+      <Filter>リソース ファイル\PMD</Filter>
+    </FxCompile>
+    <FxCompile Include="PMXToonPixelShader.hlsl">
+      <Filter>リソース ファイル\PMX</Filter>
+    </FxCompile>
+    <FxCompile Include="PMXToonVertexShader.hlsl">
+      <Filter>リソース ファイル\PMX</Filter>
     </FxCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="PMDToonShaderHeader.hlsli">
-      <Filter>リソース ファイル</Filter>
+      <Filter>リソース ファイル\PMD</Filter>
     </None>
+    <None Include="PMXToonShaderHeader.hlsli">
+      <Filter>リソース ファイル\PMX</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="DX12_Test.rc">
+      <Filter>リソース ファイル</Filter>
+    </ResourceCompile>
   </ItemGroup>
 </Project>
