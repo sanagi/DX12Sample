@@ -53,6 +53,8 @@ public:
 	std::vector<PMXMaterialData> _pmxMaterialVector;
 	std::vector<MaterialData> _materialVector;
 	std::vector<ComPtr<ID3D12Resource>> _textureVector;
+	std::vector<ComPtr<ID3D12Resource>> _sphTexVector;
+	std::vector<ComPtr<ID3D12Resource>> _spaTexVector;
 	std::vector<ComPtr<ID3D12Resource>> _toonTexVector;
 
 	void Draw(ComPtr<ID3D12Device> device, ComPtr<ID3D12GraphicsCommandList> command_list, int sizeNum);

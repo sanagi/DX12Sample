@@ -46,12 +46,53 @@ void PMXMaterial::Load(ComPtr<ID3D12Device> device, FILE* fp, std::string modelP
 		else
 		{
 			string texFileName = _pmxMaterialVector[i].texFilePath;
-
-			texFileName = _pmxMaterialVector[i].texFilePath;
-			
+			string sphFileName = "";
+			string spaFileName = "";
+			auto namepair = Texture::SplitFileName(texFileName);
+			if (std::count(texFileName.begin(), texFileName.end(), '*') > 0) {
+				auto namepair = Texture::SplitFileName(texFileName);
+				if (Texture::GetExtension(namepair.first) == "sph") {
+					texFileName = namepair.second;
+					sphFileName = namepair.first;
+				}
+				else if (Texture::GetExtension(namepair.first) == "spa") {
+					texFileName = namepair.second;
+					spaFileName = namepair.first;
+				}
+				else {
+					texFileName = namepair.first;
+					if (Texture::GetExtension(namepair.second) == "sph") {
+						sphFileName = namepair.second;
+					}
+					else if (Texture::GetExtension(namepair.first) == "spa") {
+						spaFileName = namepair.second;
+					}
+				}
+			}
+			else {
+				if (Texture::GetExtension(_pmxMaterialVector[i].texFilePath) == "sph") {
+					sphFileName = _pmxMaterialVector[i].texFilePath;
+					texFileName = "";
+				}
+				else if (Texture::GetExtension(_pmxMaterialVector[i].texFilePath) == "spa") {
+					spaFileName = _pmxMaterialVector[i].texFilePath;
+					texFileName = "";
+				}
+				else {
+					texFileName = _pmxMaterialVector[i].texFilePath;
+				}
+			}
 			if (texFileName != "") {
 				auto texFilePath = Texture::GetTexturePathFromModelAndTexPath(modelPath, texFileName.c_str());
 				_textureVector[i] = Texture::LoadTextureFromFile(device, texFilePath, _resourceTable);
+			}
+			if (sphFileName != "") {
+				auto sphFilePath = Texture::GetTexturePathFromModelAndTexPath(modelPath, sphFileName.c_str());
+				_sphTexVector[i] = Texture::LoadTextureFromFile(device, sphFilePath, _resourceTable);
+			}
+			if (spaFileName != "") {
+				auto spaFilePath = Texture::GetTexturePathFromModelAndTexPath(modelPath, spaFileName.c_str());
+				_spaTexVector[i] = Texture::LoadTextureFromFile(device, spaFilePath, _resourceTable);
 			}
 		}
 
@@ -123,6 +164,26 @@ void PMXMaterial::CreateResource(ComPtr<ID3D12Device> device, int sizeNum) {
 		else {
 			srvDesc.Format = _textureVector[i]->GetDesc().Format;
 			device->CreateShaderResourceView(_textureVector[i].Get(), &srvDesc, matDescHeapH);
+		}
+		matDescHeapH.ptr += incSize;
+
+		if (_sphTexVector[i] == nullptr) {
+			srvDesc.Format = _renderer.WhiteTex->GetDesc().Format;
+			device->CreateShaderResourceView(_renderer.WhiteTex.Get(), &srvDesc, matDescHeapH);
+		}
+		else {
+			srvDesc.Format = _sphTexVector[i]->GetDesc().Format;
+			device->CreateShaderResourceView(_sphTexVector[i].Get(), &srvDesc, matDescHeapH);
+		}
+		matDescHeapH.ptr += incSize;
+
+		if (_spaTexVector[i] == nullptr) {
+			srvDesc.Format = _renderer.BlackTex->GetDesc().Format;
+			device->CreateShaderResourceView(_renderer.BlackTex.Get(), &srvDesc, matDescHeapH);
+		}
+		else {
+			srvDesc.Format = _spaTexVector[i]->GetDesc().Format;
+			device->CreateShaderResourceView(_spaTexVector[i].Get(), &srvDesc, matDescHeapH);
 		}
 		matDescHeapH.ptr += incSize;
 

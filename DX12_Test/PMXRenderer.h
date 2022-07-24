@@ -24,7 +24,7 @@ private:
 	bool CheckShaderCompileResult(HRESULT result, ID3DBlob* error = nullptr);
 
 public:
-	static const int TOON_MATERIAL_DESC_SIZE = 3; //マテリアル、基本テクスチャ、スフィア2種
+	static const int TOON_MATERIAL_DESC_SIZE = 5; //マテリアル、基本テクスチャ、スフィア2種
 
 	//PMD用共通テクスチャ(白、黒、グレイスケールグラデーション)
 	ComPtr<ID3D12Resource> WhiteTex = nullptr;
