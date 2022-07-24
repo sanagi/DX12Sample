@@ -12,10 +12,10 @@ PMDActor::PMDActor(ComPtr<ID3D12Device> device, const char* filepath, PMDRendere
 		strerror_s(strerr, 256, error);
 	}
 	//モデル生成
-	_model = new Model(fp, device, "rb");
+	_model = new PMDModel(fp, device, "rb");
 
 	//マテリアル作成
-	_material = new Material(device, fp, filepath, PMDRenderer::TOON_MATERIAL_DESC_SIZE, renderer);
+	_material = new PMDMaterial(device, fp, filepath, PMDRenderer::TOON_MATERIAL_DESC_SIZE, renderer);
 
 	fclose(fp);
 }

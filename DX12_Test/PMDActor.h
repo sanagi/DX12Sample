@@ -1,7 +1,7 @@
 #pragma once
 #include "Matrix.h"
-#include "Material.h"
-#include "Model.h"
+#include "PMDMaterial.h"
+#include "PMDModel.h"
 
 class PMDActor
 {
@@ -16,8 +16,8 @@ private:
 	float _angle = 0; //モデルの角度
 
 	//モデル
-	Model* _model;
+	PMDModel* _model;
 
 	//マテリアル関連
-	Material* _material;
+	PMDMaterial* _material;
 };
