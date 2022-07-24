@@ -346,7 +346,7 @@ void D3D12Manager::BeginDraw() {
 
 
 	//画面クリア
-	float clearColor[] = { 1.0f,1.0f,1.0f,1.0f };//白色
+	float clearColor[] = { 0.7f,0.7f,0.7f,1.0f };//白色
 	_commandList->ClearRenderTargetView(rtvH, clearColor, 0, nullptr);
 
 	//ビューポート、シザー矩形のセット
