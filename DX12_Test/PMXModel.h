@@ -4,20 +4,6 @@
 class PMXModel
 {
 public:
-
-	struct PMXHeader {
-		int pmxMagicNumber[4];
-		float version;
-
-		int encodingFormat;
-		int numberOfAddUV;
-		int vertexIndexSize;
-		int textureIndexSize;
-		int materialIndexSize;
-		int boneIndexSize;
-		int rigidBodyIndexSize;
-	};
-
 	struct PMXVertex {
 		XMFLOAT3 position;
 		XMFLOAT3 normal;
@@ -52,13 +38,15 @@ public:
 		uint8_t  edgeMagnif;
 	};
 
-	PMXModel(FILE* fp, ComPtr<ID3D12Device> device, const char* modelName);
+	std::vector<PMXVertex> Vertices;//バッファ確保
+	std::vector<unsigned short> Indices;
+
+	PMXModel();
 	~PMXModel();
+	void CreateResource(ComPtr<ID3D12Device> device);
 	void SetRenderBuffer(ComPtr<ID3D12GraphicsCommandList> command_list);
 
 private:
-
-	static constexpr int NO_DATA_FLAG = -1;
 
 	unsigned int _indicesNum; //インデックス数
 
@@ -67,10 +55,4 @@ private:
 
 	ComPtr<ID3D12Resource> _indexBuffer;
 	D3D12_INDEX_BUFFER_VIEW _indexBufferView;
-
-	std::vector<PMXVertex> _vertices;//バッファ確保
-	std::vector<unsigned short> _indices;
-
-	void Open(FILE* fp, ComPtr<ID3D12Device> device, const char* modelName, const char* mode);
-	void CreateResource(ComPtr<ID3D12Device> device, std::vector<PMXVertex> vertices, std::vector<unsigned short> indices);
 };

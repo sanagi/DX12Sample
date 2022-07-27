@@ -5,10 +5,10 @@
 class PMXMaterial
 {
 public:
-	PMXMaterial(ComPtr<ID3D12Device> device, FILE* fp, std::string modelPath, int sizeNum, PMXRenderer renderer);
+	PMXMaterial(PMXRenderer renderer);
 	~PMXMaterial();
 
-#pragma pack(1)//ここから1バイトパッキング…アライメントは発生しない
+//#pragma pack(1)//ここから1バイトパッキング…アライメントは発生しない
 	struct PMXMaterialData
 	{
 		XMFLOAT3 diffuse; // ディフューズ
@@ -16,17 +16,17 @@ public:
 		float specularity; //スぺキュラの強さ
 		XMFLOAT3 ambient; //アンビエント色
 
-		int colorMapTextureIndex;
-		int toonTextureIndex; //トゥーン番号
+		int colorMapTextureIndex; //テクスチャテーブルの参照インデックス
+		int sphereMapTextureIndex; //スフィアマップの参照インデックス
+		int toonMapTextureIndex; //テクスチャテーブルの参照インデックス
 
-		//2バイトのパディング
+		unsigned char sphereMode; //スフィアモード 0:無効 1:乗算(sph) 2:加算(spa) 3:サブテクスチャ(追加UV1のx,yをUV参照して通常テクスチャ描画を行う)
+
+		int toonCommonTextureIndex; //トゥーン番号
 
 		unsigned int indicesNum; //このマテリアルが割り当てられるインデックス数
-		char texFilePath[20]; //テクスチャファイルパス
-	
-		//unsigned char edgeFlag; //マテリアルの輪郭線フラグ
 	};
-#pragma pack()//1バイトパッキング解除
+//#pragma pack()//1バイトパッキング解除
 
 	struct MaterialForhlsl
 	{
@@ -50,23 +50,25 @@ public:
 		AdditionarlMaterial additionarl;
 	};
 
-	std::vector<PMXMaterialData> _pmxMaterialVector;
-	std::vector<MaterialData> _materialVector;
+	std::vector<std::string> TexturePathVector;
+
+	unsigned int MaterialNum; //マテリアル数
+
+	std::vector<PMXMaterialData> PmxMaterialVector;
+	std::vector<MaterialData> MaterialVector;
 	std::vector<ComPtr<ID3D12Resource>> _textureVector;
 	std::vector<ComPtr<ID3D12Resource>> _sphTexVector;
 	std::vector<ComPtr<ID3D12Resource>> _spaTexVector;
 	std::vector<ComPtr<ID3D12Resource>> _toonTexVector;
 
+	void CreateMaterialDataForGPU(ComPtr<ID3D12Device> device, std::string modelPath);
+	void CreateResource(ComPtr<ID3D12Device> device, int sizeNum);
 	void Draw(ComPtr<ID3D12Device> device, ComPtr<ID3D12GraphicsCommandList> command_list, int sizeNum);
 
 private:
 	PMXRenderer _renderer;
 
-	unsigned int _materialNum; //マテリアル数
 	ID3D12DescriptorHeap* _descHeap = nullptr;
-
-	void Load(ComPtr<ID3D12Device> device, FILE* fp, std::string modelPath);
-	void CreateResource(ComPtr<ID3D12Device> device, int sizeNum);
 
 	//ファイル名パスとリソースのマップテーブル
 	map<string, ID3D12Resource*> _resourceTable;

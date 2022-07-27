@@ -65,12 +65,12 @@ void Application::Run() {
 			_dx12->BeginDraw();
 
 			//PMD用の描画パイプラインに合わせる
-			_dx12->SetRenderer(_pmdRenderer->GetPipelineState(), _pmdRenderer->GetRootSignature());
+			_dx12->SetRenderer(_pmxRenderer->GetPipelineState(), _pmxRenderer->GetRootSignature());
 
 			_dx12->SetScene(_matrix);
 
-			_pmdActor->Update(_matrix);
-			_pmdActor->Draw(_dx12->GetDevice(), _dx12->GetCommandList());
+			_pmxActor->Update(_matrix);
+			_pmxActor->Draw(_dx12->GetDevice(), _dx12->GetCommandList());
 
 			_dx12->EndDraw();
 		}
