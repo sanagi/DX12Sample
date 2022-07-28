@@ -154,8 +154,8 @@ HRESULT PMXRenderer::CreateGraphicsPipelineForPMX(ComPtr<ID3D12Device> device, L
 
 	//ラスタライザ指定
 	gpipeline.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
-	//gpipeline.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;//カリングしない
-	gpipeline.RasterizerState.CullMode = D3D12_CULL_MODE_BACK;//裏面のカリング
+	gpipeline.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;//カリングしない
+	//gpipeline.RasterizerState.CullMode = D3D12_CULL_MODE_BACK;//裏面のカリング
 
 	//デプスステンシルの指定
 	gpipeline.DepthStencilState.DepthEnable = true; //デプステストあり

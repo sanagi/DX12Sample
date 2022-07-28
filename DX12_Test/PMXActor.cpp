@@ -272,102 +272,11 @@ void PMXActor::Open(ComPtr<ID3D12Device> device, const char* modelName) {
 #pragma endregion
 }
 
-/*
-void PMXMaterial::Load(ComPtr<ID3D12Device> device, FILE* fp, std::string modelPath) {
-	fread(&_materialNum, sizeof(_materialNum), 1, fp); //マテリアル数を読む
-
-	MaterialVector = std::vector<MaterialData>(_materialNum);
-	PmxMaterialVector = std::vector<PMXMaterialData>(_materialNum);
-	_textureVector = std::vector<ComPtr<ID3D12Resource>>(_materialNum);
-	_toonTexVector = std::vector<ComPtr<ID3D12Resource>>(_materialNum);
-
-	auto tmp = PmxMaterialVector.size() * sizeof(PMXMaterialData);
-
-	fread(PmxMaterialVector.data(), PmxMaterialVector.size() * sizeof(PMXMaterialData), 1, fp); //全部読む
-
-	//中身をGPU用にコピー
-	for (int i = 0; i < PmxMaterialVector.size(); ++i) {
-		MaterialVector[i].indicesNum = PmxMaterialVector[i].indicesNum;
-		MaterialVector[i].material.diffuse = PmxMaterialVector[i].diffuse;
-		MaterialVector[i].material.specular = PmxMaterialVector[i].specular;
-		MaterialVector[i].material.specularity = PmxMaterialVector[i].specularity;
-		MaterialVector[i].material.ambient = PmxMaterialVector[i].ambient;
-		MaterialVector[i].additionarl.toonIdx = PmxMaterialVector[i].toonCommonTextureIndex;
-	}
-
-	//テクスチャを読み込んでテクスチャリソースバッファの配列を得る
-	for (int i = 0; i < PmxMaterialVector.size(); i++) {
-
-		//トゥーンリソースの読み込み
-		char toonFilePath[32];
-		sprintf_s(toonFilePath, "toon%02d.bmp", PmxMaterialVector[i].toonCommonTextureIndex + 1);
-		auto texFilePath = Texture::GetTexturePathFromModelAndTexPath(modelPath, toonFilePath);
-		_toonTexVector[i] = Texture::LoadTextureFromFile(device, texFilePath, _resourceTable);
-
-		if (strlen(PmxMaterialVector[i].texFilePath) == 0) {
-			_textureVector[i] = nullptr;
-		}
-		else
-		{
-			string texFileName = PmxMaterialVector[i].texFilePath;
-			string sphFileName = "";
-			string spaFileName = "";
-			auto namepair = Texture::SplitFileName(texFileName);
-			if (std::count(texFileName.begin(), texFileName.end(), '*') > 0) {
-				auto namepair = Texture::SplitFileName(texFileName);
-				if (Texture::GetExtension(namepair.first) == "sph") {
-					texFileName = namepair.second;
-					sphFileName = namepair.first;
-				}
-				else if (Texture::GetExtension(namepair.first) == "spa") {
-					texFileName = namepair.second;
-					spaFileName = namepair.first;
-				}
-				else {
-					texFileName = namepair.first;
-					if (Texture::GetExtension(namepair.second) == "sph") {
-						sphFileName = namepair.second;
-					}
-					else if (Texture::GetExtension(namepair.first) == "spa") {
-						spaFileName = namepair.second;
-					}
-				}
-			}
-			else {
-				if (Texture::GetExtension(PmxMaterialVector[i].texFilePath) == "sph") {
-					sphFileName = PmxMaterialVector[i].texFilePath;
-					texFileName = "";
-				}
-				else if (Texture::GetExtension(PmxMaterialVector[i].texFilePath) == "spa") {
-					spaFileName = PmxMaterialVector[i].texFilePath;
-					texFileName = "";
-				}
-				else {
-					texFileName = PmxMaterialVector[i].texFilePath;
-				}
-			}
-			if (texFileName != "") {
-				auto texFilePath = Texture::GetTexturePathFromModelAndTexPath(modelPath, texFileName.c_str());
-				_textureVector[i] = Texture::LoadTextureFromFile(device, texFilePath, _resourceTable);
-			}
-			if (sphFileName != "") {
-				auto sphFilePath = Texture::GetTexturePathFromModelAndTexPath(modelPath, sphFileName.c_str());
-				_sphTexVector[i] = Texture::LoadTextureFromFile(device, sphFilePath, _resourceTable);
-			}
-			if (spaFileName != "") {
-				auto spaFilePath = Texture::GetTexturePathFromModelAndTexPath(modelPath, spaFileName.c_str());
-				_spaTexVector[i] = Texture::LoadTextureFromFile(device, spaFilePath, _resourceTable);
-			}
-		}
-
-	}
-}*/
-
 #pragma region 描画ループ
 
 void PMXActor::Update(std::shared_ptr<Matrix> matrix) {
 	_angle += 0.01f;
-	//matrix->Rotate(_angle);
+	matrix->Rotate(_angle);
 }
 
 void PMXActor::Draw(ComPtr<ID3D12Device> device, ComPtr<ID3D12GraphicsCommandList> command_list) {

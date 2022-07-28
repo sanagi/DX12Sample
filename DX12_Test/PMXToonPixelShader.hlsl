@@ -9,7 +9,7 @@ SamplerState smpToon:register(s1);//0番スロットに設定されたサンプラ
 float4 PSMain(BasicType input) : SV_TARGET{
 	float3 light = normalize(float3(1,-1,1)); //光
 
-	float3 lightColor = float3(1, 1, 1); //ライト色
+	float4 lightColor = float4(1, 1, 1, 1); //ライト色
 
 	//ディフューズ
 	float diffuseB = dot(-light, input.normal);
@@ -28,20 +28,15 @@ float4 PSMain(BasicType input) : SV_TARGET{
 	//テクスチャカラー
 	float4 texColor = tex.Sample(smp, input.uv);
 
-	float4 diffuseColor = toonDiff * diffuse * texColor; //diffuse
+	float4 diffuseColor = toonDiff * diffuse * texColor * lightColor; //diffuse
+	diffuseColor.a = texColor.a;
+
 	float4 sphColor = sph.Sample(smp, sphereMapUV); //スフィア乗算
 	float4 spaColor = spa.Sample(smp, sphereMapUV); //スフィア加算
 	float4 specularColor = float4(min(0, specularB * specular.rgb) * specularity, texColor.a); //スぺキュラ
 	float4 ambientColor = float4((texColor * ambient).rgb, texColor.a);
 
-	return diffuseColor * sphColor + spaColor + specularColor + ambientColor;
-	//+ float4(specularB * specular.rgb, texColor.a); //スぺキュラ
-//, float4(texColor * ambient, texColor.a)); //アンビエント
+	float4 finalColor = diffuseColor * sphColor + spaColor + specularColor + ambientColor;
 
-/*return max(toonDiff * diffuse * texColor //diffuse
-	* sph.Sample(smp, sphereMapUV) //スフィア乗算
-	+ spa.Sample(smp, sphereMapUV) //スフィア加算
-	+ float4(specularB * specular.rgb, texColor.a) //スぺキュラ
-	, float4(texColor * ambient.rgb, texColor.a)); //アンビエント
-*/
+	return finalColor;
 }
