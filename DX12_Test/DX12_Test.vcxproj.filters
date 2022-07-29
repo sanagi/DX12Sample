@@ -72,6 +72,9 @@
     <ClCompile Include="PMXMaterial.cpp">
       <Filter>ソース ファイル\PMX</Filter>
     </ClCompile>
+    <ClCompile Include="PMDBone.cpp">
+      <Filter>ソース ファイル\PMD</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="D3D12Manager.h">
@@ -115,6 +118,9 @@
     </ClInclude>
     <ClInclude Include="resource.h">
       <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="PMDBone.h">
+      <Filter>ヘッダー ファイル\PMD</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

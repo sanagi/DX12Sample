@@ -2,6 +2,7 @@
 #include "Matrix.h"
 #include "PMDMaterial.h"
 #include "PMDModel.h"
+#include "PMDBone.h"
 
 class PMDActor
 {
@@ -9,7 +10,7 @@ public:
 	PMDActor(ComPtr<ID3D12Device> device, const char* filepath, PMDRenderer renderer);
 	~PMDActor();
 
-	void Update(std::shared_ptr<Matrix> matrix);
+	void Update(ComPtr<ID3D12GraphicsCommandList> command_list, std::shared_ptr<Matrix> matrix);
 	void Draw(ComPtr<ID3D12Device> device, ComPtr<ID3D12GraphicsCommandList> command_list);
 
 private:
@@ -20,4 +21,7 @@ private:
 
 	//マテリアル関連
 	PMDMaterial* _material;
+
+	//ボーン関連
+	PMDBone* _bone;
 };

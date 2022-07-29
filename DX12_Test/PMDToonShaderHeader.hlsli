@@ -23,3 +23,7 @@ cbuffer Material : register(b1) {
 	float specularity;
 	float3 ambient;
 };
+
+cbuffer bontTransform : register(b2) {
+	matrix bones[256]; //ƒ{[ƒ“‚Ì‰ñ“]
+};

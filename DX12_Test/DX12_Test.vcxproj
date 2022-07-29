@@ -147,6 +147,7 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Matrix.cpp" />
     <ClCompile Include="PMDActor.cpp" />
+    <ClCompile Include="PMDBone.cpp" />
     <ClCompile Include="PMDMaterial.cpp" />
     <ClCompile Include="PMDModel.cpp" />
     <ClCompile Include="PMDRenderer.cpp" />
@@ -162,6 +163,7 @@
     <ClInclude Include="D3D12Manager.h" />
     <ClInclude Include="Matrix.h" />
     <ClInclude Include="PMDActor.h" />
+    <ClInclude Include="PMDBone.h" />
     <ClInclude Include="PMDMaterial.h" />
     <ClInclude Include="PMDModel.h" />
     <ClInclude Include="PMDRenderer.h" />

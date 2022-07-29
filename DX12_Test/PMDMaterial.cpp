@@ -161,8 +161,8 @@ void PMDMaterial::CreateResource(ComPtr<ID3D12Device> device, int sizeNum) {
 
 		//テクスチャ用のリソースビュー
 		if (_textureVector[i].Get() == nullptr) {
-			srvDesc.Format = _renderer.WhiteTex->GetDesc().Format;
-			device->CreateShaderResourceView(_renderer.WhiteTex.Get(), &srvDesc, matDescHeapH);
+			srvDesc.Format = _renderer.AlphaTex->GetDesc().Format;
+			device->CreateShaderResourceView(_renderer.AlphaTex.Get(), &srvDesc, matDescHeapH);
 		}
 		else {
 			srvDesc.Format = _textureVector[i]->GetDesc().Format;

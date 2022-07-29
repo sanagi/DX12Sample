@@ -17,6 +17,9 @@ PMDActor::PMDActor(ComPtr<ID3D12Device> device, const char* filepath, PMDRendere
 	//マテリアル作成
 	_material = new PMDMaterial(device, fp, filepath, PMDRenderer::TOON_MATERIAL_DESC_SIZE, renderer);
 
+	//ボーン関連
+	_bone = new PMDBone(device, fp);
+
 	fclose(fp);
 }
 
@@ -29,9 +32,10 @@ PMDActor::~PMDActor()
 
 #pragma region 描画ループ
 
-void PMDActor::Update(std::shared_ptr<Matrix> matrix) {
+void PMDActor::Update(ComPtr<ID3D12GraphicsCommandList> command_list, std::shared_ptr<Matrix> matrix) {
 	_angle += 0.01f;
-	//matrix->Rotate(_angle);
+	matrix->Rotate(_angle);
+	_bone->SettingBone(command_list);
 }
 
 void PMDActor::Draw(ComPtr<ID3D12Device> device, ComPtr<ID3D12GraphicsCommandList> command_list) {

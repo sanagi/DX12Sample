@@ -194,7 +194,7 @@ HRESULT PMDRenderer::CreateRootSignature(ComPtr<ID3D12Device> device) {
 	rootSignatureDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT; //頂点情報の列挙がある事を伝える
 
 	//ディスクリプタレンジ
-	D3D12_DESCRIPTOR_RANGE descTblRange[3] = {}; //テクスチャと定数の2つ
+	D3D12_DESCRIPTOR_RANGE descTblRange[4] = {}; //テクスチャと定数、ボーン、マテリアル
 
 	descTblRange[0].NumDescriptors = 1;//定数ひとつ
 	descTblRange[0].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;//種別は定数
@@ -213,8 +213,14 @@ HRESULT PMDRenderer::CreateRootSignature(ComPtr<ID3D12Device> device) {
 	descTblRange[2].BaseShaderRegister = 0;
 	descTblRange[2].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 
+	//ボーン
+	descTblRange[3].NumDescriptors = 1;
+	descTblRange[3].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;//種別は定数
+	descTblRange[3].BaseShaderRegister = 2; //2番スロットへ
+	descTblRange[3].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+
 	//ルートパラメーター
-	D3D12_ROOT_PARAMETER rootparam[2] = {};
+	D3D12_ROOT_PARAMETER rootparam[3] = {};
 	rootparam[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
 	rootparam[0].DescriptorTable.pDescriptorRanges = &descTblRange[0];//デスクリプタレンジのアドレス
 	rootparam[0].DescriptorTable.NumDescriptorRanges = 1;//デスクリプタレンジ数
@@ -225,8 +231,13 @@ HRESULT PMDRenderer::CreateRootSignature(ComPtr<ID3D12Device> device) {
 	rootparam[1].DescriptorTable.NumDescriptorRanges = 2;//デスクリプタレンジ数
 	rootparam[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;//ピクセルシェーダから見える
 
+	rootparam[2].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+	rootparam[2].DescriptorTable.pDescriptorRanges = &descTblRange[3];//デスクリプタレンジのアドレス
+	rootparam[2].DescriptorTable.NumDescriptorRanges = 1;//デスクリプタレンジ数
+	rootparam[2].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;//バーテックスシェーダから見える
+
 	rootSignatureDesc.pParameters = rootparam;//ルートパラメータの先頭アドレス
-	rootSignatureDesc.NumParameters = 2;//ルートパラメータ数
+	rootSignatureDesc.NumParameters = 3;//ルートパラメータ数
 
 	//サンプラの指定
 	D3D12_STATIC_SAMPLER_DESC samplerDesc[2] = {};
