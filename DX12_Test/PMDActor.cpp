@@ -22,11 +22,12 @@ PMDActor::PMDActor(ComPtr<ID3D12Device> device, const char* filepath, const char
 
 	//モーション関連
 	_motion = new VMDMotion(motionpath);
-
-	//ボーンにモーションを流し込む
-	_bone->SetQuaternion(_motion->Motiondata);
+	_motion->SetPMDBone(_bone);
 
 	fclose(fp);
+
+	//アニメーション開始
+	_motion->PlayAnimation();
 }
 
 
@@ -39,6 +40,7 @@ PMDActor::~PMDActor()
 #pragma region 描画ループ
 
 void PMDActor::Update(ComPtr<ID3D12GraphicsCommandList> command_list, std::shared_ptr<Matrix> matrix) {
+	_motion->UpdateMotion();
 	_angle += 0.01f;
 	matrix->Rotate(_angle);
 	_bone->SettingBone(command_list);

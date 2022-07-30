@@ -29,7 +29,7 @@ void PMDBone::LoadBone(ComPtr<ID3D12Device> device, FILE* fp) {
 	for (int idx = 0; idx < pmdBones.size(); ++idx) {
 		auto& pb = pmdBones[idx];
 		boneNames[idx] = pb.boneName;
-		auto& node = _boneNodeTable[pb.boneName];
+		auto& node = BoneNodeTable[pb.boneName];
 		node.boneIdx = idx;
 		node.startPos = pb.pos;
 	}
@@ -40,9 +40,9 @@ void PMDBone::LoadBone(ComPtr<ID3D12Device> device, FILE* fp) {
 			continue;
 		}
 		auto parentName = boneNames[pb.parentNo];
-		_boneNodeTable[parentName].children.emplace_back(&_boneNodeTable[pb.boneName]);
+		BoneNodeTable[parentName].children.emplace_back(&BoneNodeTable[pb.boneName]);
 	}
-	_boneMatrices.resize(pmdBones.size());
+	BoneMatrices.resize(pmdBones.size());
 }
 
 HRESULT PMDBone::CreateResource(ComPtr<ID3D12Device> device) {
@@ -50,7 +50,7 @@ HRESULT PMDBone::CreateResource(ComPtr<ID3D12Device> device) {
 
 	//アップロード用のヒープとリソース用ディスクリプタ
 	auto heapProp = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
-	auto resDesc = CD3DX12_RESOURCE_DESC::Buffer((sizeof(XMMATRIX) * _boneMatrices.size() + 0xff) & ~0xff);
+	auto resDesc = CD3DX12_RESOURCE_DESC::Buffer((sizeof(XMMATRIX) * BoneMatrices.size() + 0xff) & ~0xff);
 	//定数バッファ作成
 	hr = device->CreateCommittedResource(
 		&heapProp,
@@ -62,12 +62,12 @@ HRESULT PMDBone::CreateResource(ComPtr<ID3D12Device> device) {
 	);
 
 	//マップとコピー
-	hr = _boneBuffer->Map(0, nullptr, (void**)&_boneMappedMatrix);
+	hr = _boneBuffer->Map(0, nullptr, (void**)&BoneMappedMatrix);
 	if (FAILED(hr)) {
 		assert(SUCCEEDED(hr));
 		return hr;
 	}
-	std::copy(_boneMatrices.begin(), _boneMatrices.end(), _boneMappedMatrix);
+	std::copy(BoneMatrices.begin(), BoneMatrices.end(), BoneMappedMatrix);
 
 	//リソース用のヒープ
 	D3D12_DESCRIPTOR_HEAP_DESC descHeapDesc = {};
@@ -96,25 +96,25 @@ HRESULT PMDBone::CreateResource(ComPtr<ID3D12Device> device) {
 
 void PMDBone::InitializeBone() {
 	//ボーンをすべて初期化する。
-	std::fill(_boneMatrices.begin(), _boneMatrices.end(), XMMatrixIdentity());
+	std::fill(BoneMatrices.begin(), BoneMatrices.end(), XMMatrixIdentity());
 
-	auto armNode = _boneNodeTable["左腕"];
+	auto armNode = BoneNodeTable["左腕"];
 	auto& armPos = armNode.startPos;
 	auto armMat = XMMatrixTranslation(-armPos.x, -armPos.y, -armPos.z) * XMMatrixRotationZ(XM_PIDIV2) * XMMatrixTranslation(armPos.x, armPos.y, armPos.z);
-	_boneMatrices[armNode.boneIdx] = armMat;
+	BoneMatrices[armNode.boneIdx] = armMat;
 
-	auto elbowNode = _boneNodeTable["左ひじ"];
+	auto elbowNode = BoneNodeTable["左ひじ"];
 	auto& elbowPos = elbowNode.startPos;
 	auto elbowMat = XMMatrixTranslation(-elbowPos.x, -elbowPos.y, -elbowPos.z) * XMMatrixRotationZ(-XM_PIDIV2) * XMMatrixTranslation(elbowPos.x, elbowPos.y, elbowPos.z);
-	_boneMatrices[elbowNode.boneIdx] = elbowMat;
+	BoneMatrices[elbowNode.boneIdx] = elbowMat;
 
-	RecursiveMatrixMultiply(&_boneNodeTable["センター"], XMMatrixIdentity());
+	RecursiveMatrixMultiply(&BoneNodeTable["センター"], XMMatrixIdentity());
 
-	std::copy(_boneMatrices.begin(), _boneMatrices.end(), _boneMappedMatrix);
+	std::copy(BoneMatrices.begin(), BoneMatrices.end(), BoneMappedMatrix);
 }
 
 /// <summary>
-/// ボーンの回転を毎回行う
+/// ボーンの回転をGUPに伝える
 /// </summary>
 /// <param name="command_list"></param>
 void PMDBone::SettingBone(ComPtr<ID3D12GraphicsCommandList> command_list) {
@@ -129,28 +129,10 @@ void PMDBone::SettingBone(ComPtr<ID3D12GraphicsCommandList> command_list) {
 /// <param name="node"></param>
 /// <param name="mat"></param>
 void PMDBone::RecursiveMatrixMultiply(BoneNode* node, const XMMATRIX& mat) {
-	_boneMatrices[node->boneIdx] *= mat;
+	BoneMatrices[node->boneIdx] *= mat;
 	for (auto& cnode : node->children) {
-		RecursiveMatrixMultiply(cnode, _boneMatrices[node->boneIdx]);
+		RecursiveMatrixMultiply(cnode, BoneMatrices[node->boneIdx]);
 	}
-}
-
-/// <summary>
-/// クオータニオン回転
-/// </summary>
-void PMDBone::SetQuaternion(std::unordered_map<std::string, std::vector<VMDMotion::KeyFrame>> motionMap) {
-	for (auto& bonemotion : motionMap) {
-		auto node = _boneNodeTable[bonemotion.first]; //最初のノード取得
-		auto& pos = node.startPos;
-
-		auto mat = XMMatrixTranslation(-pos.x, -pos.y, -pos.z) *
-			XMMatrixRotationQuaternion(bonemotion.second[0].quaternion) *
-			XMMatrixTranslation(pos.x, pos.y, pos.z);
-		_boneMatrices[node.boneIdx] = mat;
-	}
-
-	RecursiveMatrixMultiply(&_boneNodeTable["センター"], XMMatrixIdentity());
-	copy(_boneMatrices.begin(), _boneMatrices.end(), _boneMappedMatrix);
 }
 
 #pragma endregion

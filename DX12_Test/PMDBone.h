@@ -1,6 +1,5 @@
 #pragma once
 #include "BaseInclude.h"
-#include "VMDMotion.h"
 #include "Matrix.h"
 
 class PMDBone
@@ -26,24 +25,24 @@ public:
 		XMFLOAT3 eye; //視点
 	};
 
-	PMDBone(ComPtr<ID3D12Device> device, FILE* fp);
-	~PMDBone();
-	void SettingBone(ComPtr<ID3D12GraphicsCommandList> command_list);
-	void SetQuaternion(std::unordered_map<std::string, std::vector<VMDMotion::KeyFrame>> motionMap);
-
-private:
-	//ボーン関連
-	std::vector<XMMATRIX> _boneMatrices;
-
 	struct BoneNode {
 		int boneIdx;//ボーンインデックス
 		XMFLOAT3 startPos;//ボーン基準点(回転中心)
 		std::vector<BoneNode*> children;//子ノード
 	};
 
-	std::map<std::string, BoneNode> _boneNodeTable;
+	PMDBone(ComPtr<ID3D12Device> device, FILE* fp);
+	~PMDBone();
 
-	XMMATRIX* _boneMappedMatrix;//マップ先を示すポインタ
+	//ボーン関連
+	std::vector<XMMATRIX> BoneMatrices;
+	std::map<std::string, BoneNode> BoneNodeTable;
+	XMMATRIX* BoneMappedMatrix;//マップ先を示すポインタ
+
+	void SettingBone(ComPtr<ID3D12GraphicsCommandList> command_list);
+	void RecursiveMatrixMultiply(BoneNode* node, const XMMATRIX& mat);
+
+private:
 	ComPtr<ID3D12DescriptorHeap> _boneMatrixDescHeap;
 
 	ComPtr<ID3D12Resource> _boneBuffer;
@@ -51,7 +50,5 @@ private:
 	void LoadBone(ComPtr<ID3D12Device> device, FILE* fp);
 	HRESULT CreateResource(ComPtr<ID3D12Device> device);
 	void InitializeBone();
-
-	void RecursiveMatrixMultiply(BoneNode* node, const XMMATRIX& mat);
 };
 

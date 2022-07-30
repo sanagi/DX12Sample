@@ -92,7 +92,7 @@ bool Application::Init() {
 	_matrix.reset(new Matrix(_dx12->GetDevice(), window_width, window_height));
 	_pmdRenderer.reset(new PMDRenderer(_dx12->GetDevice(), L"PMDToonVertexShader.hlsl", L"PMDToonPixelShader.hlsl"));
 	//_pmdActor.reset(new PMDActor(_dx12->GetDevice(), "Model/Lat式ミクVer2.31_Normal.pmd", "motion/swing2.vmd", "pose", *_pmdRenderer, false));
-	_pmdActor.reset(new PMDActor(_dx12->GetDevice(), "Model/初音ミク.pmd", "motion/pose.vmd", *_pmdRenderer, true));
+	_pmdActor.reset(new PMDActor(_dx12->GetDevice(), "Model/初音ミク.pmd", "motion/swing.vmd", *_pmdRenderer, true));
 	
 	//_pmxRenderer.reset(new PMXRenderer(_dx12->GetDevice(), L"PMXToonVertexShader.hlsl", L"PMXToonPixelShader.hlsl"));
 	//_pmxActor.reset(new PMXActor(_dx12->GetDevice(), "Model/Appearance Miku/Appearance Miku.pmx", *_pmxRenderer));
