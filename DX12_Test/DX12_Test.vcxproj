@@ -156,6 +156,7 @@
     <ClCompile Include="PMXModel.cpp" />
     <ClCompile Include="PMXRenderer.cpp" />
     <ClCompile Include="Texture.cpp" />
+    <ClCompile Include="VMDMotion.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Application.h" />
@@ -173,6 +174,7 @@
     <ClInclude Include="PMXRenderer.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="Texture.h" />
+    <ClInclude Include="VMDMotion.h" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="PMDToonPixelShader.hlsl">

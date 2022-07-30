@@ -1,6 +1,6 @@
 #include "PMDMaterial.h"
 
-PMDMaterial::PMDMaterial(ComPtr<ID3D12Device> device, FILE* fp, std::string modelPath, int sizeNum, PMDRenderer renderer) : _renderer(renderer) {
+PMDMaterial::PMDMaterial(ComPtr<ID3D12Device> device, FILE* fp, std::string modelPath, int sizeNum, PMDRenderer renderer, bool useWhite) : _renderer(renderer),_useWhite(useWhite) {
 	Load(device, fp, modelPath);
 	CreateResource(device, sizeNum);
 }
@@ -161,8 +161,14 @@ void PMDMaterial::CreateResource(ComPtr<ID3D12Device> device, int sizeNum) {
 
 		//テクスチャ用のリソースビュー
 		if (_textureVector[i].Get() == nullptr) {
-			srvDesc.Format = _renderer.AlphaTex->GetDesc().Format;
-			device->CreateShaderResourceView(_renderer.AlphaTex.Get(), &srvDesc, matDescHeapH);
+			if (!_useWhite) {
+				srvDesc.Format = _renderer.AlphaTex->GetDesc().Format;
+				device->CreateShaderResourceView(_renderer.AlphaTex.Get(), &srvDesc, matDescHeapH);
+			}
+			else {
+				srvDesc.Format = _renderer.WhiteTex->GetDesc().Format;
+				device->CreateShaderResourceView(_renderer.WhiteTex.Get(), &srvDesc, matDescHeapH);
+			}
 		}
 		else {
 			srvDesc.Format = _textureVector[i]->GetDesc().Format;

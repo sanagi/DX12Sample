@@ -5,7 +5,7 @@
 class PMDMaterial
 {
 public:
-	PMDMaterial(ComPtr<ID3D12Device> device, FILE* fp, std::string modelPath, int sizeNum, PMDRenderer renderer);
+	PMDMaterial(ComPtr<ID3D12Device> device, FILE* fp, std::string modelPath, int sizeNum, PMDRenderer renderer, bool useWhite);
 	~PMDMaterial();
 
 #pragma pack(1)//ここから1バイトパッキング…アライメントは発生しない
@@ -58,6 +58,7 @@ public:
 	void Draw(ComPtr<ID3D12Device> device, ComPtr<ID3D12GraphicsCommandList> command_list, int sizeNum);
 
 private:
+	bool _useWhite;
 	PMDRenderer _renderer;
 
 	unsigned int _materialNum; //マテリアル数

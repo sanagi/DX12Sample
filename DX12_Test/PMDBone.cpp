@@ -5,7 +5,6 @@
 PMDBone::PMDBone(ComPtr<ID3D12Device> device, FILE* fp) {
 	LoadBone(device, fp);
 	CreateResource(device);
-	InitializeBone();
 }
 
 PMDBone::~PMDBone() {
@@ -134,6 +133,24 @@ void PMDBone::RecursiveMatrixMultiply(BoneNode* node, const XMMATRIX& mat) {
 	for (auto& cnode : node->children) {
 		RecursiveMatrixMultiply(cnode, _boneMatrices[node->boneIdx]);
 	}
+}
+
+/// <summary>
+/// クオータニオン回転
+/// </summary>
+void PMDBone::SetQuaternion(std::unordered_map<std::string, std::vector<VMDMotion::KeyFrame>> motionMap) {
+	for (auto& bonemotion : motionMap) {
+		auto node = _boneNodeTable[bonemotion.first]; //最初のノード取得
+		auto& pos = node.startPos;
+
+		auto mat = XMMatrixTranslation(-pos.x, -pos.y, -pos.z) *
+			XMMatrixRotationQuaternion(bonemotion.second[0].quaternion) *
+			XMMatrixTranslation(pos.x, pos.y, pos.z);
+		_boneMatrices[node.boneIdx] = mat;
+	}
+
+	RecursiveMatrixMultiply(&_boneNodeTable["センター"], XMMatrixIdentity());
+	copy(_boneMatrices.begin(), _boneMatrices.end(), _boneMappedMatrix);
 }
 
 #pragma endregion

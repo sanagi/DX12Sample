@@ -1,5 +1,6 @@
 #pragma once
 #include "BaseInclude.h"
+#include "VMDMotion.h"
 #include "Matrix.h"
 
 class PMDBone
@@ -28,6 +29,7 @@ public:
 	PMDBone(ComPtr<ID3D12Device> device, FILE* fp);
 	~PMDBone();
 	void SettingBone(ComPtr<ID3D12GraphicsCommandList> command_list);
+	void SetQuaternion(std::unordered_map<std::string, std::vector<VMDMotion::KeyFrame>> motionMap);
 
 private:
 	//É{Å[Éìä÷òA

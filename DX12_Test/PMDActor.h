@@ -3,11 +3,12 @@
 #include "PMDMaterial.h"
 #include "PMDModel.h"
 #include "PMDBone.h"
+#include "VMDMotion.h"
 
 class PMDActor
 {
 public:
-	PMDActor(ComPtr<ID3D12Device> device, const char* filepath, PMDRenderer renderer);
+	PMDActor(ComPtr<ID3D12Device> device, const char* filepath, const char* motionpath, PMDRenderer renderer, bool useWhite);
 	~PMDActor();
 
 	void Update(ComPtr<ID3D12GraphicsCommandList> command_list, std::shared_ptr<Matrix> matrix);
@@ -24,4 +25,7 @@ private:
 
 	//ボーン関連
 	PMDBone* _bone;
+
+	//モーション関連
+	VMDMotion* _motion;
 };

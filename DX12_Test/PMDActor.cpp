@@ -2,7 +2,7 @@
 
 #pragma region コンストラクタ系
 
-PMDActor::PMDActor(ComPtr<ID3D12Device> device, const char* filepath, PMDRenderer renderer) : _angle(0.0f)
+PMDActor::PMDActor(ComPtr<ID3D12Device> device, const char* filepath, const char* motionpath, PMDRenderer renderer, bool useWhite) : _angle(0.0f)
 {
 	FILE* fp = nullptr;
 	auto error = fopen_s(&fp, filepath, "rb");
@@ -15,10 +15,16 @@ PMDActor::PMDActor(ComPtr<ID3D12Device> device, const char* filepath, PMDRendere
 	_model = new PMDModel(fp, device, "rb");
 
 	//マテリアル作成
-	_material = new PMDMaterial(device, fp, filepath, PMDRenderer::TOON_MATERIAL_DESC_SIZE, renderer);
+	_material = new PMDMaterial(device, fp, filepath, PMDRenderer::TOON_MATERIAL_DESC_SIZE, renderer, useWhite);
 
 	//ボーン関連
 	_bone = new PMDBone(device, fp);
+
+	//モーション関連
+	_motion = new VMDMotion(motionpath);
+
+	//ボーンにモーションを流し込む
+	_bone->SetQuaternion(_motion->Motiondata);
 
 	fclose(fp);
 }
