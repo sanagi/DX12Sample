@@ -67,10 +67,16 @@ void Application::Run() {
 			//PMD用の描画パイプラインに合わせる
 			_dx12->SetRenderer(_pmdRenderer->GetPipelineState(), _pmdRenderer->GetRootSignature());
 
+			//PMX用の描画パイプラインに合わせる
+			//_dx12->SetRenderer(_pmxRenderer->GetPipelineState(), _pmxRenderer->GetRootSignature());
+
 			_dx12->SetScene(_matrix);
 
-			_pmdActor->Update(_matrix);
+			_pmdActor->Update(_dx12->GetCommandList(), _matrix);
 			_pmdActor->Draw(_dx12->GetDevice(), _dx12->GetCommandList());
+
+			//_pmxActor->Update(_matrix);
+			//_pmxActor->Draw(_dx12->GetDevice(), _dx12->GetCommandList());
 
 			_dx12->EndDraw();
 		}
@@ -84,9 +90,13 @@ bool Application::Init() {
 	//DirectX12ラッパー生成＆初期化
 	_dx12.reset(new D3D12Manager(_hwnd));
 	_matrix.reset(new Matrix(_dx12->GetDevice(), window_width, window_height));
-	_pmdRenderer.reset(new PMDRenderer(_dx12->GetDevice(), L"SimpleVertexShader.hlsl", L"SimplePixelShader.hlsl"));
-	_pmdActor.reset(new PMDActor(_dx12->GetDevice(), "Model/Lat式ミクVer2.31_Normal.pmd", *_pmdRenderer));
-
+	_pmdRenderer.reset(new PMDRenderer(_dx12->GetDevice(), L"PMDToonVertexShader.hlsl", L"PMDToonPixelShader.hlsl"));
+	_pmdActor.reset(new PMDActor(_dx12->GetDevice(), "Model/Lat式ミクVer2.31_Normal.pmd", "motion/DeepBlueTown_he_Oideyo_dance.vmd", *_pmdRenderer, false));
+	//_pmdActor.reset(new PMDActor(_dx12->GetDevice(), "Model/初音ミク.pmd", "motion/swing.vmd", *_pmdRenderer, true));
+	
+	//_pmxRenderer.reset(new PMXRenderer(_dx12->GetDevice(), L"PMXToonVertexShader.hlsl", L"PMXToonPixelShader.hlsl"));
+	//_pmxActor.reset(new PMXActor(_dx12->GetDevice(), "Model/Appearance Miku/Appearance Miku.pmx", *_pmxRenderer));
+	
 	return true;
 }
 

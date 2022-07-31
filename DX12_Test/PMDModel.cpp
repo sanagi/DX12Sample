@@ -1,8 +1,8 @@
-#include "Model.h"
+#include "PMDModel.h"
 
 #pragma region コンストラクタ系
 
-Model::Model(FILE* fp, ComPtr<ID3D12Device> device, const char* modelName) {
+PMDModel::PMDModel(FILE* fp, ComPtr<ID3D12Device> device, const char* modelName) {
 
 	//ファイル読み込み
 	Open(fp, device, modelName, "rb");
@@ -10,14 +10,14 @@ Model::Model(FILE* fp, ComPtr<ID3D12Device> device, const char* modelName) {
 	CreateResource(device, _vertices, _indices);
 }
 
-Model::~Model() {
+PMDModel::~PMDModel() {
 }
 
 #pragma endregion
 
 #pragma region ファイルを開く,リソース生成
 
-void Model::Open(FILE* fp, ComPtr<ID3D12Device> device, const char* modelName, const char* mode) {
+void PMDModel::Open(FILE* fp, ComPtr<ID3D12Device> device, const char* modelName, const char* mode) {
 	HRESULT hr{};
 	char signature[3] = {};
 	PMDHeader pmdheader = {};
@@ -48,7 +48,7 @@ void Model::Open(FILE* fp, ComPtr<ID3D12Device> device, const char* modelName, c
 /// </summary>
 /// <param name="device"></param>
 /// <param name="vertNum"></param>
-void Model::CreateResource(ComPtr<ID3D12Device> device, std::vector<PMDVertex> vertices, std::vector<unsigned short> indices) {
+void PMDModel::CreateResource(ComPtr<ID3D12Device> device, std::vector<PMDVertex> vertices, std::vector<unsigned short> indices) {
 	auto heapProp = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
 	auto resDesc = CD3DX12_RESOURCE_DESC::Buffer(vertices.size() * sizeof(PMDVertex));
 	//UPLOAD(確保は可能)
@@ -102,7 +102,7 @@ void Model::CreateResource(ComPtr<ID3D12Device> device, std::vector<PMDVertex> v
 
 #pragma endregion
 
-void Model::SetRenderBuffer(ComPtr<ID3D12GraphicsCommandList> command_list) {
+void PMDModel::SetRenderBuffer(ComPtr<ID3D12GraphicsCommandList> command_list) {
 	//頂点情報のセット
 	command_list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST); //トポロジ指定
 	//バッファビューの指定

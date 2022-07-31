@@ -2,14 +2,14 @@
 #include "Texture.h"
 #include "PMDRenderer.h"
 
-class Material
+class PMDMaterial
 {
 public:
-	Material(ComPtr<ID3D12Device> device, FILE* fp, std::string modelPath, int sizeNum, PMDRenderer renderer);
-	~Material();
+	PMDMaterial(ComPtr<ID3D12Device> device, FILE* fp, std::string modelPath, int sizeNum, PMDRenderer renderer, bool useWhite);
+	~PMDMaterial();
 
 #pragma pack(1)//ここから1バイトパッキング…アライメントは発生しない
-	struct PMDMaterial
+	struct PMDMaterialData
 	{
 		XMFLOAT3 diffuse; // ディフューズ
 		float alpha; //ディフューズα
@@ -48,15 +48,17 @@ public:
 		AdditionarlMaterial additionarl;
 	};
 
-	std::vector<PMDMaterial> PmdMaterialVector;
-	std::vector<MaterialData> MaterialVector;
-	std::vector<ComPtr<ID3D12Resource>> TextureVector;
-	std::vector<ComPtr<ID3D12Resource>> sphTexVector;
-	std::vector<ComPtr<ID3D12Resource>> spaTexVector;
+	std::vector<PMDMaterialData> _pmdMaterialVector;
+	std::vector<MaterialData> _materialVector;
+	std::vector<ComPtr<ID3D12Resource>> _textureVector;
+	std::vector<ComPtr<ID3D12Resource>> _sphTexVector;
+	std::vector<ComPtr<ID3D12Resource>> _spaTexVector;
+	std::vector<ComPtr<ID3D12Resource>> _toonTexVector;
 
 	void Draw(ComPtr<ID3D12Device> device, ComPtr<ID3D12GraphicsCommandList> command_list, int sizeNum);
 
 private:
+	bool _useWhite;
 	PMDRenderer _renderer;
 
 	unsigned int _materialNum; //マテリアル数
@@ -65,5 +67,7 @@ private:
 	void Load(ComPtr<ID3D12Device> device, FILE* fp, std::string modelPath);
 	void CreateResource(ComPtr<ID3D12Device> device, int sizeNum);
 
+	//ファイル名パスとリソースのマップテーブル
+	map<string, ID3D12Resource*> _resourceTable;
 };
 

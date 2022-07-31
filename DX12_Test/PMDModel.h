@@ -1,7 +1,7 @@
 #pragma once
 #include "BaseInclude.h"
 
-class Model
+class PMDModel
 {
 public:
 
@@ -21,8 +21,8 @@ public:
 		uint16_t dummy;
 	};
 
-	Model(FILE* fp, ComPtr<ID3D12Device> device, const char* modelName);
-	~Model();
+	PMDModel(FILE* fp, ComPtr<ID3D12Device> device, const char* modelName);
+	~PMDModel();
 	void SetRenderBuffer(ComPtr<ID3D12GraphicsCommandList> command_list);
 
 private:

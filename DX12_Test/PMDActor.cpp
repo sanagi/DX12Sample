@@ -1,10 +1,8 @@
 #include "PMDActor.h"
 
-const int MATERIAL_DESC_SIZE = 4; //マテリアル、基本テクスチャ、スフィア2種
-
 #pragma region コンストラクタ系
 
-PMDActor::PMDActor(ComPtr<ID3D12Device> device, const char* filepath, PMDRenderer renderer) : _angle(0.0f)
+PMDActor::PMDActor(ComPtr<ID3D12Device> device, const char* filepath, const char* motionpath, PMDRenderer renderer, bool useWhite) : _angle(0.0f)
 {
 	FILE* fp = nullptr;
 	auto error = fopen_s(&fp, filepath, "rb");
@@ -14,12 +12,22 @@ PMDActor::PMDActor(ComPtr<ID3D12Device> device, const char* filepath, PMDRendere
 		strerror_s(strerr, 256, error);
 	}
 	//モデル生成
-	_model = new Model(fp, device, "rb");
+	_model = new PMDModel(fp, device, "rb");
 
 	//マテリアル作成
-	_material = new Material(device, fp, filepath, MATERIAL_DESC_SIZE, renderer);
+	_material = new PMDMaterial(device, fp, filepath, PMDRenderer::TOON_MATERIAL_DESC_SIZE, renderer, useWhite);
+
+	//ボーン関連
+	_bone = new PMDBone(device, fp);
+
+	//モーション関連
+	_motion = new VMDMotion(motionpath);
+	_motion->SetPMDBone(_bone);
 
 	fclose(fp);
+
+	//アニメーション開始
+	_motion->PlayAnimation();
 }
 
 
@@ -31,19 +39,19 @@ PMDActor::~PMDActor()
 
 #pragma region 描画ループ
 
-void PMDActor::Update(std::shared_ptr<Matrix> matrix) {
+void PMDActor::Update(ComPtr<ID3D12GraphicsCommandList> command_list, std::shared_ptr<Matrix> matrix) {
+	_motion->UpdateMotion();
 	_angle += 0.01f;
-	matrix->Rotate(_angle);
+	//matrix->Rotate(_angle);
+	_bone->SettingBone(command_list);
 }
 
 void PMDActor::Draw(ComPtr<ID3D12Device> device, ComPtr<ID3D12GraphicsCommandList> command_list) {
 
 	//モデル描画
 	_model->SetRenderBuffer(command_list);
-
 	//マテリアル描画
-	_material->Draw(device, command_list, MATERIAL_DESC_SIZE);
-	
+	_material->Draw(device, command_list, PMDRenderer::TOON_MATERIAL_DESC_SIZE);
 }
 
 #pragma endregion

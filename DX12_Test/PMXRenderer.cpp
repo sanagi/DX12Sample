@@ -1,4 +1,4 @@
-#include "PMDRenderer.h"
+#include "PMXRenderer.h"
 #include "Texture.h"
 
 using namespace std;
@@ -17,27 +17,27 @@ namespace {
 #pragma endregion
 
 
-PMDRenderer::PMDRenderer(ComPtr<ID3D12Device> device, LPCWSTR vertexShaderName, LPCWSTR pixelShaderName)
+PMXRenderer::PMXRenderer(ComPtr<ID3D12Device> device, LPCWSTR vertexShaderName, LPCWSTR pixelShaderName)
 {
 	assert(SUCCEEDED(CreateRootSignature(device)));
-	assert(SUCCEEDED(CreateGraphicsPipelineForPMD(device, vertexShaderName, pixelShaderName)));
+	assert(SUCCEEDED(CreateGraphicsPipelineForPMX(device, vertexShaderName, pixelShaderName)));
 	WhiteTex = Texture::CreateWhiteTexture(device);
 	AlphaTex = Texture::CreateAlphaTexture(device);
 	BlackTex = Texture::CreateBlackTexture(device);
 	GradTex = Texture::CreateGrayGradationTexture(device);
 }
 
-PMDRenderer::~PMDRenderer()
+PMXRenderer::~PMXRenderer()
 {
 
 }
 
 #pragma region 描画ループ
 
-void PMDRenderer::Update() {
+void PMXRenderer::Update() {
 
 }
-void PMDRenderer::Draw() {
+void PMXRenderer::Draw() {
 
 }
 
@@ -51,7 +51,7 @@ void PMDRenderer::Draw() {
 /// <param name="result"></param>
 /// <param name="error"></param>
 /// <returns></returns>
-bool PMDRenderer::CheckShaderCompileResult(HRESULT result, ID3DBlob* error) {
+bool PMXRenderer::CheckShaderCompileResult(HRESULT result, ID3DBlob* error) {
 	if (FAILED(result)) {
 		if (result == HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND)) {
 			::OutputDebugStringA("ファイルが見当たりません");
@@ -72,7 +72,7 @@ bool PMDRenderer::CheckShaderCompileResult(HRESULT result, ID3DBlob* error) {
 
 //パイプラインステートオブジェクト
 //重要。後にリファクタするならここを色々分けたい
-HRESULT PMDRenderer::CreateGraphicsPipelineForPMD(ComPtr<ID3D12Device> device, LPCWSTR vertexShaderName, LPCWSTR pixelShaderName) {
+HRESULT PMXRenderer::CreateGraphicsPipelineForPMX(ComPtr<ID3D12Device> device, LPCWSTR vertexShaderName, LPCWSTR pixelShaderName) {
 	HRESULT hr{};
 
 	ComPtr<ID3DBlob> vertexShader{};
@@ -154,8 +154,8 @@ HRESULT PMDRenderer::CreateGraphicsPipelineForPMD(ComPtr<ID3D12Device> device, L
 
 	//ラスタライザ指定
 	gpipeline.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
-	//gpipeline.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;//カリングしない
-	gpipeline.RasterizerState.CullMode = D3D12_CULL_MODE_BACK;//裏面のカリング
+	gpipeline.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;//カリングしない
+	//gpipeline.RasterizerState.CullMode = D3D12_CULL_MODE_BACK;//裏面のカリング
 
 	//デプスステンシルの指定
 	gpipeline.DepthStencilState.DepthEnable = true; //デプステストあり
@@ -185,7 +185,7 @@ HRESULT PMDRenderer::CreateGraphicsPipelineForPMD(ComPtr<ID3D12Device> device, L
 }
 
 //ルートシグネチャ(ディスクリプターテーブルを管理するもの)を作る
-HRESULT PMDRenderer::CreateRootSignature(ComPtr<ID3D12Device> device) {
+HRESULT PMXRenderer::CreateRootSignature(ComPtr<ID3D12Device> device) {
 	HRESULT hr{};
 
 	ComPtr<ID3DBlob> errorBlob = nullptr;
@@ -194,7 +194,7 @@ HRESULT PMDRenderer::CreateRootSignature(ComPtr<ID3D12Device> device) {
 	rootSignatureDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT; //頂点情報の列挙がある事を伝える
 
 	//ディスクリプタレンジ
-	D3D12_DESCRIPTOR_RANGE descTblRange[4] = {}; //テクスチャと定数、ボーン、マテリアル
+	D3D12_DESCRIPTOR_RANGE descTblRange[3] = {}; //テクスチャと定数の2つ
 
 	descTblRange[0].NumDescriptors = 1;//定数ひとつ
 	descTblRange[0].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;//種別は定数
@@ -213,14 +213,8 @@ HRESULT PMDRenderer::CreateRootSignature(ComPtr<ID3D12Device> device) {
 	descTblRange[2].BaseShaderRegister = 0;
 	descTblRange[2].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 
-	//ボーン
-	descTblRange[3].NumDescriptors = 1;
-	descTblRange[3].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;//種別は定数
-	descTblRange[3].BaseShaderRegister = 2; //2番スロットへ
-	descTblRange[3].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
-
 	//ルートパラメーター
-	D3D12_ROOT_PARAMETER rootparam[3] = {};
+	D3D12_ROOT_PARAMETER rootparam[2] = {};
 	rootparam[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
 	rootparam[0].DescriptorTable.pDescriptorRanges = &descTblRange[0];//デスクリプタレンジのアドレス
 	rootparam[0].DescriptorTable.NumDescriptorRanges = 1;//デスクリプタレンジ数
@@ -231,13 +225,8 @@ HRESULT PMDRenderer::CreateRootSignature(ComPtr<ID3D12Device> device) {
 	rootparam[1].DescriptorTable.NumDescriptorRanges = 2;//デスクリプタレンジ数
 	rootparam[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;//ピクセルシェーダから見える
 
-	rootparam[2].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-	rootparam[2].DescriptorTable.pDescriptorRanges = &descTblRange[3];//デスクリプタレンジのアドレス
-	rootparam[2].DescriptorTable.NumDescriptorRanges = 1;//デスクリプタレンジ数
-	rootparam[2].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;//バーテックスシェーダから見える
-
 	rootSignatureDesc.pParameters = rootparam;//ルートパラメータの先頭アドレス
-	rootSignatureDesc.NumParameters = 3;//ルートパラメータ数
+	rootSignatureDesc.NumParameters = 2;//ルートパラメータ数
 
 	//サンプラの指定
 	D3D12_STATIC_SAMPLER_DESC samplerDesc[2] = {};
@@ -272,11 +261,11 @@ HRESULT PMDRenderer::CreateRootSignature(ComPtr<ID3D12Device> device) {
 
 #pragma region ゲッター
 
-ID3D12PipelineState* PMDRenderer::GetPipelineState() {
+ID3D12PipelineState* PMXRenderer::GetPipelineState() {
 	return _pipeline.Get();
 }
 
-ID3D12RootSignature* PMDRenderer::GetRootSignature() {
+ID3D12RootSignature* PMXRenderer::GetRootSignature() {
 	return _rootSignature.Get();
 }
 

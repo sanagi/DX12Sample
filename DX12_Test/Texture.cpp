@@ -78,11 +78,20 @@ std::wstring Texture::GetWideStringFromString(const std::string& str) {
 /// </summary>
 /// <param name="texPath"></param>
 /// <returns></returns>
-ID3D12Resource* Texture::LoadTextureFromFile(ComPtr<ID3D12Device> device, std::string& texPath) {
+ID3D12Resource* Texture::LoadTextureFromFile(ComPtr<ID3D12Device> device, std::string& texPath, map<string, ID3D12Resource*> &resourceTable) {
+	
+	auto it = resourceTable.find(texPath);
+	if (it != resourceTable.end()) {
+		//テーブルに内にあったらロードするのではなくマップ内の
+		//リソースを返す
+		return resourceTable[texPath];
+	}
+	
 	//テーブルの定義
 	{
 		loadLambdaTable["sph"] = loadLambdaTable["spa"] = loadLambdaTable["bmp"] = loadLambdaTable["png"] = loadLambdaTable["jpg"] = [](const wstring& path, TexMetadata* meta, ScratchImage& img)->HRESULT {
-			return LoadFromWICFile(path.c_str(), WIC_FLAGS_NONE, meta, img);
+			auto a = LoadFromWICFile(path.c_str(), WIC_FLAGS_NONE, meta, img);
+			return a;
 		};
 
 		loadLambdaTable["tga"] = [](const wstring& path, TexMetadata* meta, ScratchImage& img)->HRESULT {
@@ -228,6 +237,8 @@ ID3D12Resource* Texture::LoadTextureFromFile(ComPtr<ID3D12Device> device, std::s
 		return nullptr;
 	}
 
+	resourceTable[texPath] = texbuff;
+
 	return texbuff;
 }
 
@@ -304,6 +315,18 @@ ID3D12Resource* Texture::CreateWhiteTexture(ComPtr<ID3D12Device> device) {
 	auto result = whiteBuff->WriteToSubresource(0, nullptr, data.data(), 4 * 4, data.size());
 	assert(SUCCEEDED(result));
 	return whiteBuff;
+}
+
+ID3D12Resource* Texture::CreateAlphaTexture(ComPtr<ID3D12Device> device) {
+
+	ID3D12Resource* alphaBuff = CreateDefaultTexture(device, 4, 4);
+
+	std::vector<unsigned char> data(4 * 4 * 4 * 4);
+	std::fill(data.begin(), data.end(), 0x00);
+
+	auto result = alphaBuff->WriteToSubresource(0, nullptr, data.data(), 4 * 4 * 4, data.size());
+	assert(SUCCEEDED(result));
+	return alphaBuff;
 }
 
 ID3D12Resource* Texture::CreateBlackTexture(ComPtr<ID3D12Device> device) {

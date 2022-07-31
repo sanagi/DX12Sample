@@ -18,6 +18,8 @@ cbuffer cbuff0 : register(b0) {
 
 cbuffer Material : register(b1) {
 	float4 diffuse;
+	float alpha;
 	float4 specular;
+	float specularity;
 	float3 ambient;
 };

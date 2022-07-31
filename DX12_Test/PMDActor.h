@@ -1,23 +1,31 @@
 #pragma once
 #include "Matrix.h"
-#include "Material.h"
-#include "Model.h"
+#include "PMDMaterial.h"
+#include "PMDModel.h"
+#include "PMDBone.h"
+#include "VMDMotion.h"
 
 class PMDActor
 {
 public:
-	PMDActor(ComPtr<ID3D12Device> device, const char* filepath, PMDRenderer renderer);
+	PMDActor(ComPtr<ID3D12Device> device, const char* filepath, const char* motionpath, PMDRenderer renderer, bool useWhite);
 	~PMDActor();
 
-	void Update(std::shared_ptr<Matrix> matrix);
+	void Update(ComPtr<ID3D12GraphicsCommandList> command_list, std::shared_ptr<Matrix> matrix);
 	void Draw(ComPtr<ID3D12Device> device, ComPtr<ID3D12GraphicsCommandList> command_list);
 
 private:
 	float _angle = 0; //モデルの角度
 
 	//モデル
-	Model* _model;
+	PMDModel* _model;
 
 	//マテリアル関連
-	Material* _material;
+	PMDMaterial* _material;
+
+	//ボーン関連
+	PMDBone* _bone;
+
+	//モーション関連
+	VMDMotion* _motion;
 };

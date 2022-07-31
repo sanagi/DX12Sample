@@ -11,11 +11,11 @@ void Matrix::Initialize(ComPtr<ID3D12Device> device, int width, int height) {
 
 	//使用する行列作成
 	_worldMat = XMMatrixIdentity();
-	XMFLOAT3 eye(0, 10, -15);
+	XMFLOAT3 eye(0, 10, -25);
 	XMFLOAT3 target(0, 10, 0);
 	XMFLOAT3 up(0, 1, 0);
 	_viewMat = XMMatrixLookAtLH(XMLoadFloat3(&eye), XMLoadFloat3(&target), XMLoadFloat3(&up));
-	_projMat = XMMatrixPerspectiveFovLH(XM_PIDIV2,//画角は90°
+	_projMat = XMMatrixPerspectiveFovLH(XM_PIDIV2 / 2,//画角は90°
 		static_cast<float>(width) / static_cast<float>(height),//アス比
 		1.0f,//近い方
 		100.0f//遠い方

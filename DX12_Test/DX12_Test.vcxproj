@@ -145,26 +145,39 @@
     <ClCompile Include="Application.cpp" />
     <ClCompile Include="D3D12Manager.cpp" />
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="Material.cpp" />
     <ClCompile Include="Matrix.cpp" />
-    <ClCompile Include="Model.cpp" />
     <ClCompile Include="PMDActor.cpp" />
+    <ClCompile Include="PMDBone.cpp" />
+    <ClCompile Include="PMDMaterial.cpp" />
+    <ClCompile Include="PMDModel.cpp" />
     <ClCompile Include="PMDRenderer.cpp" />
+    <ClCompile Include="PMXActor.cpp" />
+    <ClCompile Include="PMXMaterial.cpp" />
+    <ClCompile Include="PMXModel.cpp" />
+    <ClCompile Include="PMXRenderer.cpp" />
     <ClCompile Include="Texture.cpp" />
+    <ClCompile Include="VMDMotion.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Application.h" />
     <ClInclude Include="BaseInclude.h" />
     <ClInclude Include="D3D12Manager.h" />
-    <ClInclude Include="Material.h" />
     <ClInclude Include="Matrix.h" />
-    <ClInclude Include="Model.h" />
     <ClInclude Include="PMDActor.h" />
+    <ClInclude Include="PMDBone.h" />
+    <ClInclude Include="PMDMaterial.h" />
+    <ClInclude Include="PMDModel.h" />
     <ClInclude Include="PMDRenderer.h" />
+    <ClInclude Include="PMXActor.h" />
+    <ClInclude Include="PMXMaterial.h" />
+    <ClInclude Include="PMXModel.h" />
+    <ClInclude Include="PMXRenderer.h" />
+    <ClInclude Include="resource.h" />
     <ClInclude Include="Texture.h" />
+    <ClInclude Include="VMDMotion.h" />
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="SimplePixelShader.hlsl">
+    <FxCompile Include="PMDToonPixelShader.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Pixel</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Pixel</ShaderType>
@@ -172,7 +185,7 @@
       <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">5.0</ShaderModel>
       <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">PSMain</EntryPointName>
     </FxCompile>
-    <FxCompile Include="SimpleVertexShader.hlsl">
+    <FxCompile Include="PMDToonVertexShader.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Vertex</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Vertex</ShaderType>
@@ -180,9 +193,23 @@
       <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">5.0</ShaderModel>
       <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">VSMain</EntryPointName>
     </FxCompile>
+    <FxCompile Include="PMXToonPixelShader.hlsl">
+      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">PSMain</EntryPointName>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">5.0</ShaderModel>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+    </FxCompile>
+    <FxCompile Include="PMXToonVertexShader.hlsl">
+      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">VSMain</EntryPointName>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">5.0</ShaderModel>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
+    </FxCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="SimpleShaderHeader.hlsli" />
+    <None Include="PMDToonShaderHeader.hlsli" />
+    <None Include="PMXToonShaderHeader.hlsli" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="DX12_Test.rc" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
